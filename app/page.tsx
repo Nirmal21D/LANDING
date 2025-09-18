@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Navbar } from "@/components/navbar"
+import { RAGFlowchart } from "@/components/ui/rag-flowchart"
+import { BusinessFlowchart } from "@/components/ui/business-flowchart"
 import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code } from "lucide-react"
 
 export default function ThikanaAILanding() {
@@ -194,153 +196,21 @@ export default function ThikanaAILanding() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">How It Works</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Three simple steps to discover the best local businesses around you
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Discover how Thikana AI processes real-time data and connects businesses with customers through advanced AI technology
             </p>
           </div>
           
-          {/* Flow Diagram */}
-          <div className="relative">
-            {/* Desktop Flow */}
-            <div className="hidden lg:block">
-              <div className="flex items-center justify-between">
-                {/* Step 1 */}
-                <div className="flex flex-col items-center group">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-3xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-300 border-4 border-background">
-                      <MessageCircle className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-background">
-                      1
-                    </div>
-                  </div>
-                  <div className="mt-6 text-center max-w-xs">
-                    <h3 className="text-xl font-bold mb-3">Ask Your Question</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Type what you're looking for in natural language - restaurants, services, or local info.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Arrow 1 */}
-                <div className="flex-1 flex justify-center">
-                  <div className="relative">
-                    <div className="w-16 h-1 bg-gradient-to-r from-primary to-accent rounded-full"></div>
-                    <ArrowRight className="w-6 h-6 text-primary absolute -top-2.5 right-0" />
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="flex flex-col items-center group">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-br from-accent to-primary rounded-3xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-300 border-4 border-background">
-                      <Zap className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-accent rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-background">
-                      2
-                    </div>
-                  </div>
-                  <div className="mt-6 text-center max-w-xs">
-                    <h3 className="text-xl font-bold mb-3">AI Searches</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Our AI instantly searches through local business data, reviews, and real-time information.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Arrow 2 */}
-                <div className="flex-1 flex justify-center">
-                  <div className="relative">
-                    <div className="w-16 h-1 bg-gradient-to-r from-accent to-primary rounded-full"></div>
-                    <ArrowRight className="w-6 h-6 text-accent absolute -top-2.5 right-0" />
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="flex flex-col items-center group">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-3xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-300 border-4 border-background">
-                      <Sparkles className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-background">
-                      3
-                    </div>
-                  </div>
-                  <div className="mt-6 text-center max-w-xs">
-                    <h3 className="text-xl font-bold mb-3">Get Smart Answers</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Receive personalized recommendations with all the details, reviews, and context you need.
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* Technical Flowcharts */}
+          <div className="space-y-20">
+            {/* RAG Query Flowchart */}
+            <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
+              <RAGFlowchart />
             </div>
 
-            {/* Mobile/Tablet Flow */}
-            <div className="lg:hidden space-y-12">
-              {/* Step 1 */}
-              <div className="flex items-start space-x-6 group">
-                <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 border-2 border-background">
-                    <MessageCircle className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xs border border-background">
-                    1
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-3">Ask Your Question</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Type what you're looking for in natural language - restaurants, services, or local info.
-                  </p>
-                </div>
-              </div>
-
-              {/* Arrow 1 */}
-              <div className="flex justify-center">
-                <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full"></div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex items-start space-x-6 group">
-                <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 border-2 border-background">
-                    <Zap className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white font-bold text-xs border border-background">
-                    2
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-3">AI Searches</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Our AI instantly searches through local business data, reviews, and real-time information.
-                  </p>
-                </div>
-              </div>
-
-              {/* Arrow 2 */}
-              <div className="flex justify-center">
-                <div className="w-1 h-8 bg-gradient-to-b from-accent to-primary rounded-full"></div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex items-start space-x-6 group">
-                <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 border-2 border-background">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xs border border-background">
-                    3
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-3">Get Smart Answers</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Receive personalized recommendations with all the details, reviews, and context you need.
-                  </p>
-                </div>
-              </div>
+            {/* Business Registration Flowchart */}
+            <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
+              <BusinessFlowchart />
             </div>
           </div>
         </div>
