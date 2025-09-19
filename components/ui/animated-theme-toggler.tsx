@@ -21,9 +21,29 @@ export function AnimatedThemeToggler({ className, size = "sm", variant = "ghost"
     setMounted(true)
   }, [])
 
-  const isDark = (resolvedTheme ?? theme) === "dark"
+  const isDark = mounted ? (resolvedTheme ?? theme) === "dark" : false
+
+  // Prevent hydration mismatch by rendering a consistent initial state
+  if (!mounted) {
+    return (
+      <Button
+        variant={variant}
+        size={size}
+        className={`text-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors ${className ?? ""}`}
+        aria-pressed={false}
+        title="Toggle theme"
+        disabled
+      >
+        <span className="relative inline-flex items-center justify-center w-4 h-4">
+          <Sun className="h-4 w-4 opacity-0" />
+        </span>
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    )
+  }
 
   const handleToggle = async () => {
+    
     const next = isDark ? "light" : "dark"
 
     // Fallback if View Transitions API is unavailable

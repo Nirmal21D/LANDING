@@ -19,6 +19,18 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center space-x-8">
             <a
+              href="/"
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+            >
+              Home
+            </a>
+            <a
+              href="/chat"
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+            >
+              Chat
+            </a>
+            <a
               href="#features"
               className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
             >
@@ -41,10 +53,10 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             <AnimatedThemeToggler />
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-muted/50">
-              Sign In
+              <a href="/login">Sign In</a>
             </Button>
             <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
-              Get Started
+              <a href="/business-register">Register Business</a>
             </Button>
           </div>
 
@@ -61,6 +73,12 @@ export function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col space-y-4">
+              <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Home
+              </a>
+              <a href="/chat" className="text-muted-foreground hover:text-foreground transition-colors">
+                Chat
+              </a>
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
                 Features
               </a>
@@ -76,10 +94,10 @@ export function Navbar() {
                   <AnimatedThemeToggler />
                 </div>
                 <Button variant="outline" size="sm" className="text-foreground hover:bg-muted/50 bg-transparent">
-                  Sign In
+                  <a href="/login">Sign In</a>
                 </Button>
                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
-                  Get Started
+                  <a href="/business-register">Register Business</a>
                 </Button>
               </div>
             </div>

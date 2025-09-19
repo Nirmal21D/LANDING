@@ -1,15 +1,127 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Navbar } from "@/components/navbar"
+import { 
+  Navbar, 
+  NavBody, 
+  NavItems, 
+  MobileNav, 
+  MobileNavHeader, 
+  MobileNavMenu, 
+  MobileNavToggle,
+  NavbarButton 
+} from "@/components/ui/resizable-navbar"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { RAGFlowchart } from "@/components/ui/rag-flowchart"
 import { BusinessFlowchart } from "@/components/ui/business-flowchart"
-import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code } from "lucide-react"
+import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle } from "lucide-react"
+import Link from "next/link"
 
 export default function ThikanaAILanding() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (searchQuery.trim()) {
+      // Redirect to chat page with search query as URL parameter
+      const trimmedQuery = searchQuery.trim()
+      console.log('Searching for:', trimmedQuery)
+      window.location.href = `/chat?q=${encodeURIComponent(trimmedQuery)}`
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSearch()
+    }
+  }
+
+  const handleSuggestionClick = (suggestion: string) => {
+    console.log('Suggestion clicked:', suggestion)
+    setSearchQuery(suggestion)
+    // Immediately redirect with the suggestion
+    window.location.href = `/chat?q=${encodeURIComponent(suggestion)}`
+  }
+
+  const handleSearchButtonClick = () => {
+    handleSearch()
+  }
+
   return (
     <div className="min-h-screen bg-background grid-pattern">
-      <Navbar />
+      {/* Resizable Navbar */}
+      <Navbar className="fixed top-0 left-0 right-0 z-50">
+        {/* Desktop Navbar */}
+        <NavBody>
+          {/* Logo */}
+          <div className="flex items-center space-x-2">
+            <Triangle className="w-6 h-6 text-primary fill-primary" />
+            <span className="text-xl font-bold text-foreground">Thikana AI</span>
+          </div>
+
+          {/* Navigation Items */}
+          <NavItems items={[
+            { name: "How it Works", link: "#how-it-works" },
+            { name: "FAQ", link: "#faq" },
+            { name: "Chat", link: "/chat" }
+          ]} />
+
+          {/* Right Side Actions */}
+          <div className="flex items-center space-x-4">
+            <AnimatedThemeToggler />
+            <NavbarButton href="/login" variant="secondary">
+              Login
+            </NavbarButton>
+            <NavbarButton href="/business-register" variant="primary">
+              Register Business
+            </NavbarButton>
+          </div>
+        </NavBody>
+
+        {/* Mobile Navbar */}
+        <MobileNav>
+          <MobileNavHeader>
+            <div className="flex items-center space-x-2">
+              <Triangle className="w-6 h-6 text-primary fill-primary" />
+              <span className="text-xl font-bold text-foreground">Thikana AI</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <AnimatedThemeToggler />
+              <MobileNavToggle
+                isOpen={isMobileMenuOpen}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              />
+            </div>
+          </MobileNavHeader>
+
+          <MobileNavMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)}>
+            <div className="flex flex-col space-y-4 p-4">
+              <a href="#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
+                How it Works
+              </a>
+              <a href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
+                FAQ
+              </a>
+              <Link href="/chat" className="text-sm font-medium hover:text-primary transition-colors">
+                Chat
+              </Link>
+              <div className="border-t border-border my-4"></div>
+              <NavbarButton href="/login" variant="secondary">
+                Login
+              </NavbarButton>
+              <NavbarButton href="/business-register" variant="primary">
+                Register Business
+              </NavbarButton>
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
 
       {/* Hero Section */}
       <section className="relative px-6 pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-48 lg:pb-40 overflow-hidden">
@@ -26,23 +138,56 @@ export default function ThikanaAILanding() {
             Empower your entire neighborhood to discover at the speed of thought, while ensuring accuracy remains at the
             forefront.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button
-              size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-4 text-lg font-semibold"
-            >
-              Start Exploring
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-border text-foreground hover:bg-muted/50 px-8 py-4 text-lg bg-transparent"
-            >
-              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center mr-3">
-                <div className="w-0 h-0 border-l-[6px] border-l-foreground border-y-[4px] border-y-transparent ml-0.5"></div>
+          
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 p-2 bg-card/50 backdrop-blur-sm border border-border rounded-2xl shadow-2xl">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  name="search"
+                  placeholder="Ask me anything... 'Find coffee shops with WiFi near me'"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="pl-12 pr-4 py-4 text-lg bg-transparent border-0 focus:ring-0 focus:border-0 placeholder:text-muted-foreground/70"
+                  autoComplete="off"
+                />
               </div>
-              Watch Demo
-            </Button>
+              <Button
+                type="submit"
+                size="lg"
+                onClick={handleSearchButtonClick}
+                disabled={!searchQuery.trim()}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-4 text-lg font-semibold rounded-xl"
+              >
+                Search
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </form>
+
+          {/* Quick Search Suggestions */}
+          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+            <span className="text-sm text-muted-foreground">Try:</span>
+            {[
+              "Best pizza nearby",
+              "Coffee shops with WiFi",
+              "Dentist open today",
+              "Kid-friendly restaurants",
+              "Late night pharmacies"
+            ].map((suggestion) => (
+              <Button
+                key={suggestion}
+                variant="outline"
+                size="sm"
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="text-xs bg-muted/30 border-border/50 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all"
+              >
+                {suggestion}
+              </Button>
+            ))}
           </div>
         </div>
       </section>
@@ -227,8 +372,10 @@ export default function ThikanaAILanding() {
             around you.
           </p>
           <Button size="lg" className="gradient-secondary text-white px-8 py-4 text-lg font-semibold">
-            Start Chatting
-            <MessageCircle className="w-5 h-5 ml-2" />
+            <a href="/chat" className="flex items-center">
+              Start Chatting
+              <MessageCircle className="w-5 h-5 ml-2" />
+            </a>
           </Button>
         </div>
       </section>
