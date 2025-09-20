@@ -488,13 +488,13 @@ export default function ThikanaAILanding() {
                 Visit Official Portal
               </a>
               <p className="text-xs text-muted-foreground">
-                Official Thikana AI Portal
+                Official Thikana Portal
               </p>
             </div>
           </div>
 
           <div className="pt-8 border-t border-border text-center">
-            <p className="text-sm text-muted-foreground">© 2024 Thikana AI. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 Thikana AI. All rights reserved.</p>
           </div>
         </div>
       </footer>

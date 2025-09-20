@@ -139,94 +139,94 @@ const businessNodes = [
 ];
 
 const businessEdges = [
-  // Registration Flow
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--primary))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-  },
-  {
-    id: 'e2-3',
-    source: '2',
-    target: '3',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--accent))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--accent))' },
-  },
-  {
-    id: 'e3-4',
-    source: '3',
-    target: '4',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--accent))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--accent))' },
-  },
-  {
-    id: 'e4-5',
-    source: '4',
-    target: '5',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--primary))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-  },
-  {
-    id: 'e5-6',
-    source: '5',
-    target: '6',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--accent))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--accent))' },
-  },
+    // Registration Flow
+    {
+        id: 'e1-2',
+        source: '1',
+        target: '2',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#6366f1', strokeWidth: 3 }, // Indigo
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+    },
+    {
+        id: 'e2-3',
+        source: '2',
+        target: '3',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#8b5cf6', strokeWidth: 3 }, // Violet
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+    },
+    {
+        id: 'e3-4',
+        source: '3',
+        target: '4',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#8b5cf6', strokeWidth: 3 }, // Violet
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+    },
+    {
+        id: 'e4-5',
+        source: '4',
+        target: '5',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#6366f1', strokeWidth: 3 }, // Indigo
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+    },
+    {
+        id: 'e5-6',
+        source: '5',
+        target: '6',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#8b5cf6', strokeWidth: 3 }, // Violet
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+    },
 
-  // Discovery Flow
-  {
-    id: 'e7-8',
-    source: '7',
-    target: '8',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--primary))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-  },
-  {
-    id: 'e8-9',
-    source: '8',
-    target: '9',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--accent))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--accent))' },
-  },
-  {
-    id: 'e9-10',
-    source: '9',
-    target: '10',
-    type: 'smoothstep',
-    animated: true,
-    style: { stroke: 'hsl(var(--accent))', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--accent))' },
-  },
+    // Discovery Flow
+    {
+        id: 'e7-8',
+        source: '7',
+        target: '8',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#6366f1', strokeWidth: 3 }, // Indigo
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+    },
+    {
+        id: 'e8-9',
+        source: '8',
+        target: '9',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#8b5cf6', strokeWidth: 3 }, // Violet
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+    },
+    {
+        id: 'e9-10',
+        source: '9',
+        target: '10',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#8b5cf6', strokeWidth: 3 }, // Violet
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+    },
 
-  // Connection from database to discovery
-  {
-    id: 'e4-8',
-    source: '4',
-    target: '8',
-    type: 'smoothstep',
-    style: { stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '8,5' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-    label: 'Business Data Access',
-    labelStyle: { fill: 'hsl(var(--foreground))', fontWeight: 600 },
-    labelBgStyle: { fill: 'hsl(var(--background))', fillOpacity: 0.8 },
-  },
+    // Connection from database to discovery
+    {
+        id: 'e4-8',
+        source: '4',
+        target: '8',
+        type: 'smoothstep',
+        style: { stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '8,5' }, // Indigo dashed
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+        label: 'Business Data Access',
+        labelStyle: { fill: '#0f172a', fontWeight: 600 },
+        labelBgStyle: { fill: '#f1f5f9', fillOpacity: 0.8 },
+    },
 ];
 
 export default function BusinessFlowDiagram() {
