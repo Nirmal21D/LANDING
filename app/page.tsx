@@ -46,7 +46,7 @@ export default function ThikanaAILanding() {
     console.log('Suggestion clicked:', suggestion)
     setSearchQuery(suggestion)
     // Immediately redirect with the suggestion
-    window.location.href = `/chat?q=${encodeURIComponent(suggestion)}`
+    window.location.href = `/search?q=${encodeURIComponent(suggestion)}`
   }
 
   const handleSearchButtonClick = () => {
