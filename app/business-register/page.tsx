@@ -54,13 +54,71 @@ export default function BusinessRegisterPage() {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Business registration:', formData)
+    try {
+      console.log('🏢 Submitting business registration:', formData)
+      
+      // Prepare the request data
+      const registrationData = {
+        businessOwnerName: formData.businessOwnerName,
+        businessName: formData.businessName,
+        businessDescription: formData.businessDescription,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        businessCategory: formData.businessCategory,
+        businessTags: formData.businessTags
+      }
+      
+      console.log('📤 Sending registration request:', registrationData)
+      
+      // Call the registration API
+      const response = await fetch('/api/register-business', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      })
+      
+      console.log('📥 Registration response status:', response.status)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ Registration failed:', errorData)
+        throw new Error(errorData.error || `Registration failed: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      console.log('✅ Registration successful:', result)
+      
+      if (result.ok) {
+        alert(`🎉 Business registered successfully!\n\n` +
+              `✅ Business: ${formData.businessName}\n` +
+              `✅ Owner: ${formData.businessOwnerName}\n` +
+              `✅ Category: ${formData.businessCategory}\n` +
+              `✅ Location: ${formData.latitude}, ${formData.longitude}\n` +
+              `✅ Records added: ${result.appended}\n\n` +
+              `Your business is now discoverable through AI-powered search!`)
+        
+        // Reset form
+        setFormData({
+          businessOwnerName: '',
+          businessName: '',
+          businessDescription: '',
+          latitude: '',
+          longitude: '',
+          businessCategory: '',
+          businessTags: ''
+        })
+      } else {
+        throw new Error(result.error || 'Registration failed')
+      }
+      
+    } catch (error) {
+      console.error('🚨 Registration error:', error)
+      alert(`❌ Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check your information and try again.`)
+    } finally {
       setIsLoading(false)
-      alert('Business registered successfully! Generated tags: ' + formData.businessTags)
-      // Add your registration logic here
-    }, 2000)
+    }
   }
 
   const businessCategories = [
@@ -275,7 +333,9 @@ export default function BusinessRegisterPage() {
               <Textarea
                 id="businessDescription"
                 name="businessDescription"
-                placeholder="Describe your business, services, atmosphere, and what makes it unique..."
+                placeholder="Describe your business, services, atmosphere, and what makes it unique... 
+
+Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and light meals. We pride ourselves on locally sourced ingredients, friendly service, and providing a comfortable workspace for remote professionals and students.'"
                 value={formData.businessDescription}
                 onChange={handleInputChange}
                 className="bg-background border-border focus:ring-primary min-h-[100px]"
@@ -306,7 +366,7 @@ export default function BusinessRegisterPage() {
                     name="latitude"
                     type="number"
                     step="any"
-                    placeholder="-"
+                    placeholder="e.g., 40.7128"
                     value={formData.latitude}
                     onChange={handleInputChange}
                     className="bg-background border-border focus:ring-primary"
@@ -325,7 +385,7 @@ export default function BusinessRegisterPage() {
                     name="longitude"
                     type="number"
                     step="any"
-                    placeholder="-"
+                    placeholder="e.g., -74.0060"
                     value={formData.longitude}
                     onChange={handleInputChange}
                     className="bg-background border-border focus:ring-primary"
@@ -358,7 +418,7 @@ export default function BusinessRegisterPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {businessCategories.map((category) => (
-                    <SelectItem key={category} value={category.toLowerCase()}>
+                    <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
                   ))}

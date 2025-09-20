@@ -1,44 +1,32 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { MapPin, Search, Send, Bot, User, Navigation, Clock, Star, Phone, Globe, Triangle, Database, Sparkles, Loader2 } from "lucide-react"
+import { MapPin, Search, Navigation, Clock, Star, Globe, Filter, ChevronDown, Loader2, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Separator } from "@/components/ui/separator"
 import { 
-  Navbar, 
-  NavBody, 
-  NavItems, 
-  MobileNav, 
-  MobileNavHeader, 
-  MobileNavMenu, 
-  MobileNavToggle,
-  NavbarButton 
-} from "@/components/ui/resizable-navbar"
+  Navbar
+} from "@/components/navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { Footer } from "@/components/ui/footer"
 
-interface Message {
-  id: string
-  type: 'user' | 'bot'
-  content: string
-  timestamp: Date
-  businesses?: Business[]
-}
-
 interface Business {
-  name: string
-  business_name: string
-  latitude: number
-  longitude: number
-  lat_long: string
-  business_category: string
-  business_tags: string
-  vector_score: number
-  source_path: string
-  distance_km: number
+  name: string                    // Owner/Contact name from API
+  business_name: string          // Actual business name from API  
+  latitude: number               // GPS coordinates from API
+  longitude: number              // GPS coordinates from API
+  lat_long: string              // Formatted coordinates from API
+  business_category: string     // Category classification from API
+  business_tags: string         // Comma-separated tags from API
+  vector_score: number          // AI similarity score from API (negative value)
+  source_path: string           // Data source path from API
+  distance_km: number           // Calculated distance from user location
 }
 
 interface SearchResponse {
@@ -58,127 +46,90 @@ interface SearchResponse {
   search_method: string
 }
 
-// Mock local businesses registered on Thikana - removed as we'll use real API
+interface FilterState {
+  category: string
+  radius: number
+  sortBy: string
+  tags: string[]
+}
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: "👋 Hi! I'm Thikana Search Assistant. I'm automatically detecting your location to help you find local businesses nearby.\n\n🗺️ Once your location is confirmed, just tell me what you're looking for:\n• \"Pure veg restaurants near me\"\n• \"Laptop repair shops\"\n• \"Family doctors nearby\"\n• \"Organic grocery stores\"\n\nI'll search through our registered local businesses and show you the best matches with their locations, ratings, and contact details!",
-      timestamp: new Date()
-    }
-  ])
-  const [inputValue, setInputValue] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
-  const [isSearching, setIsSearching] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Handle search query from URL parameters and auto-fetch location
-  useEffect(() => {
-    // Auto-fetch location on component mount
-    getCurrentLocation()
-    
-    const query = searchParams.get('q')
-    if (query) {
-      setInputValue(query)
-      // Don't auto-search immediately, wait for location to be available
-    }
-  }, [searchParams])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Auto-execute search when location becomes available and there's a pending query
-  useEffect(() => {
-    const query = searchParams.get('q')
-    if (userLocation && query && inputValue === query && messages.length === 1) {
-      // Location is now available and we have a query from URL, execute it
-      handleSearch(query)
-    }
-  }, [userLocation, searchParams, inputValue, messages.length])
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [totalResults, setTotalResults] = useState(0)
+  const [searchInfo, setSearchInfo] = useState<any>(null)
+  
+  const [filters, setFilters] = useState<FilterState>({
+    category: 'all',
+    radius: 10,
+    sortBy: 'relevance',
+    tags: []
+  })
 
   // Get user location
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setIsLoadingLocation(true)
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          })
-          setIsLoadingLocation(false)
-        },
-        (error) => {
-          console.error("Error getting location:", error)
-          setIsLoadingLocation(false)
-          
-          // Add error message to chat
-          const errorMessage: Message = {
-            id: Date.now().toString(),
-            type: 'bot',
-            content: `❌ **Location Access Error**\n\n${
-              error.code === 1 ? "Location access was denied. Please enable location permissions in your browser settings." :
-              error.code === 2 ? "Location information is unavailable. Please check your internet connection." :
-              error.code === 3 ? "Location request timed out. Please try again." :
-              "Unable to retrieve your location. Please try again or check your browser settings."
-            }\n\nLocation access is required to find local businesses near you.`,
-            timestamp: new Date()
-          }
-          setMessages(prev => [...prev, errorMessage])
-        },
-        {
+  const getCurrentLocation = async () => {
+    setIsLoadingLocation(true)
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser.')
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 300000 // 5 minutes
-        }
-      )
-    } else {
-      console.error("Geolocation is not supported by this browser.")
-      setIsLoadingLocation(false)
-      
-      // Add error message to chat
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: "❌ **Geolocation Not Supported**\n\nYour browser doesn't support location services. Please use a modern browser or manually search for businesses by area name.",
-        timestamp: new Date()
+          maximumAge: 300000
+        })
+      })
+
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
       }
-      setMessages(prev => [...prev, errorMessage])
+      
+      setUserLocation(location)
+      console.log('📍 User location:', location)
+    } catch (error) {
+      console.error('❌ Location error:', error)
+      setErrorMessage('Unable to get your location. Please enable location access.')
+      // Default to NYC coordinates
+      setUserLocation({ lat: 40.7128, lng: -74.0060 })
+    } finally {
+      setIsLoadingLocation(false)
     }
   }
 
-  // Search businesses using the real API with Gemini AI-enhanced filters
-  const searchBusinesses = async (query: string): Promise<{ businesses: Business[], filterInfo?: any }> => {
-    if (!userLocation) return { businesses: [] }
+  // Search businesses using real API
+  const searchBusinesses = async (query: string): Promise<{ businesses: Business[], filterInfo?: any, error?: string }> => {
+    if (!userLocation) return { businesses: [], error: 'Location required for search' }
     
     try {
-      setIsSearching(true)
+      setIsLoading(true)
+      setErrorMessage('')
       
-      // Generate intelligent filters using Gemini AI
+      // Generate intelligent filters using Gemini AI 
       const filtersResponse = await fetch('/api/generate-search-filters', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ 
+          query,
+          user_location: userLocation 
+        })
       })
       
       let category_filter: string | undefined
       let tag_filters: string[] = []
       let enhanced_query = query
-      let max_distance_km = 10
-      let limit = 5
+      let max_distance_km = filters.radius
+      let limit = 20
       let search_type = 'specific'
       let aiFiltersUsed = false
       
@@ -188,190 +139,198 @@ export default function SearchPage() {
           category_filter = filtersData.filters.category_filter
           tag_filters = filtersData.filters.tag_filters
           enhanced_query = filtersData.filters.enhanced_query || query
-          max_distance_km = filtersData.filters.max_distance_km || 10
-          limit = filtersData.filters.limit || 5
+          max_distance_km = filtersData.filters.max_distance_km || filters.radius
+          limit = filtersData.filters.limit || 20
           search_type = filtersData.filters.search_type || 'specific'
           aiFiltersUsed = true
           console.log('🤖 Gemini AI generated filters:', filtersData.filters)
-        } else {
-          console.warn('AI filter generation failed, using fallback')
         }
-      } else {
-        console.warn('AI filter API unavailable, using original query')
+      }
+
+      // Apply manual filters if category is selected
+      if (filters.category !== 'all') {
+        category_filter = filters.category
       }
       
+      // Use the filter radius instead of AI suggested radius
+      max_distance_km = filters.radius
+      
+      // Call the real business search API
       const requestBody = {
-        user_lat: userLocation.lat,
-        user_lng: userLocation.lng,
         query: enhanced_query,
-        max_distance_km: max_distance_km,
-        ...(category_filter && { category_filter }),
-        ...(tag_filters.length > 0 && { tag_filters }),
-        limit: limit
+        user_location: userLocation,
+        max_distance_km,
+        category_filter,
+        tag_filters,
+        limit
       }
       
-      console.log('🔍 Enhanced search request:', requestBody)
+      console.log('🔍 === SEARCH REQUEST TO ENDPOINT ===')
+      console.log('📤 Request URL:', '/api/search-businesses')
+      console.log('📤 Request Method:', 'POST')
+      console.log('📤 Request Headers:', { 'Content-Type': 'application/json' })
+      console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2))
+      console.log('📤 Original Query:', query)
+      console.log('📤 Enhanced Query:', enhanced_query)
+      console.log('📤 User Location:', userLocation)
+      console.log('📤 AI Filters Used:', aiFiltersUsed)
       
-      const response = await fetch('http://128.199.11.96:8001/search-businesses', {
+      const searchResponse = await fetch('/api/search-businesses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody)
       })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+
+      console.log('📥 === SEARCH RESPONSE FROM ENDPOINT ===')
+      console.log('📥 Response Status:', searchResponse.status)
+      console.log('📥 Response Headers:', Object.fromEntries(searchResponse.headers.entries()))
+
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text()
+        console.error('❌ Search API error response:', errorText)
+        console.error('❌ Full error details:', {
+          status: searchResponse.status,
+          statusText: searchResponse.statusText,
+          url: searchResponse.url,
+          body: errorText
+        })
+        throw new Error(`Search API error: ${searchResponse.status} ${searchResponse.statusText} - ${errorText}`)
       }
+
+      const searchData = await searchResponse.json()
+      console.log('📥 Response Body (Raw):', JSON.stringify(searchData, null, 2))
+      console.log('📥 Response Summary:', {
+        ok: searchData.ok,
+        total_found: searchData.total_found,
+        results_count: searchData.results?.length || 0,
+        search_method: searchData.search_method,
+        search_params: searchData.search_params
+      })
       
-      const data: SearchResponse = await response.json()
-      console.log('Search response:', data)
+      if (!searchData.ok) {
+        console.error('❌ API returned ok: false')
+        console.error('❌ Error details:', searchData.error || 'No error message provided')
+        throw new Error(searchData.error || 'Search failed')
+      }
+
+      const businesses = searchData.results || []
       
-      if (data.ok) {
-        return { 
-          businesses: data.results,
-          filterInfo: aiFiltersUsed ? {
-            category_filter,
-            tag_filters,
-            enhanced_query,
-            max_distance_km,
-            limit,
-            search_type,
-            aiEnhanced: true
-          } : undefined
+      console.log('✅ === FINAL SEARCH RESULTS ===')
+      console.log('✅ Query processed:', enhanced_query)
+      console.log('✅ Total found:', searchData.total_found)
+      console.log('✅ Results returned:', businesses.length)
+      console.log('✅ Search method:', searchData.search_method)
+      console.log('✅ AI enhanced:', aiFiltersUsed)
+      console.log('✅ Applied filters:', { category_filter, tag_filters })
+      console.log('✅ Individual businesses:', businesses.map((b: Business) => ({
+        name: b.business_name,
+        category: b.business_category,
+        distance: b.distance_km,
+        score: b.vector_score
+      })))
+      console.log('✅ ===============================')
+
+      return {
+        businesses,
+        filterInfo: {
+          aiEnhanced: aiFiltersUsed,
+          searchMethod: searchData.search_method,
+          totalFound: searchData.total_found,
+          filters: { category_filter, tag_filters },
+          searchParams: searchData.search_params
         }
-      } else {
-        throw new Error('Search failed')
       }
-      
     } catch (error) {
-      console.error('Search error:', error)
-      return { businesses: [] }
+      console.error('🚨 Business search failed:', error)
+      return { 
+        businesses: [], 
+        error: error instanceof Error ? error.message : 'Search failed. Please try again.' 
+      }
     } finally {
-      setIsSearching(false)
+      setIsLoading(false)
     }
   }
 
-  const handleSearch = async (searchQuery?: string) => {
-    const query = searchQuery || inputValue.trim()
+  const handleSearch = async (queryParam?: string) => {
+    const query = queryParam || searchQuery.trim()
     if (!query) return
 
-    // Check if user location is available
     if (!userLocation) {
-      // Show error message requesting location
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: "📍 I need your location to find nearby businesses. Please click the 'Get My Location' button above to enable location access, then try searching again.",
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
+      alert("Please enable location access to search for nearby businesses.")
       return
     }
 
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: query,
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    setIsTyping(true)
-
     try {
-      // Search using real API
       const searchResult = await searchBusinesses(query)
       const foundBusinesses = searchResult.businesses
       const filterInfo = searchResult.filterInfo
-      let botResponse = ""
+      const searchError = searchResult.error
 
-      if (foundBusinesses.length > 0) {
-        // Different messages based on search type
-        if (filterInfo?.search_type === 'comprehensive') {
-          botResponse = `🔍 **Comprehensive Search Results**\n\nFound ${foundBusinesses.length} businesses matching "${query}" within ${filterInfo.max_distance_km}km radius:`
-        } else if (filterInfo?.search_type === 'broad') {
-          botResponse = `🎯 **Broad Search Results**\n\nFound ${foundBusinesses.length} businesses matching "${query}" within ${filterInfo.max_distance_km}km:`
-        } else {
-          botResponse = `🎯 Found ${foundBusinesses.length} local businesses matching "${query}":`
-        }
-        
-        // Add AI enhancement info if filters were used
-        if (filterInfo?.aiEnhanced) {
-          botResponse += "\n\n🤖 **AI-Enhanced Search**"
-          if (filterInfo.search_type === 'comprehensive') {
-            botResponse += "\n• Search Type: Comprehensive (maximum radius)"
-          } else if (filterInfo.search_type === 'broad') {
-            botResponse += "\n• Search Type: Broad (expanded area)"
-          }
-          if (filterInfo.category_filter) {
-            botResponse += `\n• Category: ${filterInfo.category_filter}`
-          }
-          if (filterInfo.tag_filters?.length > 0) {
-            botResponse += `\n• Tags: ${filterInfo.tag_filters.join(', ')}`
-          }
-          if (filterInfo.enhanced_query !== query) {
-            botResponse += `\n• Enhanced query: "${filterInfo.enhanced_query}"`
-          }
-          botResponse += `\n• Radius: ${filterInfo.max_distance_km}km • Results: ${filterInfo.limit}`
-        }
-        
-        botResponse += "\n\nThese are registered businesses on Thikana with verified locations and real-time information."
-      } else {
-        let searchScope = ""
-        if (filterInfo?.search_type === 'comprehensive') {
-          searchScope = ` within ${filterInfo.max_distance_km}km (maximum radius)`
-        } else if (filterInfo?.search_type === 'broad') {
-          searchScope = ` within ${filterInfo.max_distance_km}km (expanded area)`
-        } else {
-          searchScope = " in your immediate area"
-        }
-        
-        botResponse = `🔍 No businesses found matching "${query}"${searchScope}.\n\n💡 **Try these comprehensive searches:**\n• "Find all coffee shops"\n• "All restaurants near me"\n• "List all medical clinics"\n• "Show all repair services"\n• "Find all grocery stores"\n\nOr be more specific with your needs.`
+      if (searchError) {
+        alert(searchError)
+        return
       }
 
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: botResponse,
-        timestamp: new Date(),
-        businesses: foundBusinesses
-      }
+      setBusinesses(foundBusinesses)
+      setTotalResults(foundBusinesses.length)
+      setSearchInfo(filterInfo)
 
-      setMessages(prev => [...prev, botMessage])
-      
+      // Sort businesses based on selected sort option
+      const sortedBusinesses = [...foundBusinesses].sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'distance':
+            return a.distance_km - b.distance_km
+          case 'rating':
+            return Math.abs(b.vector_score) - Math.abs(a.vector_score)
+          case 'name':
+            return a.business_name.localeCompare(b.business_name)
+          default: // relevance
+            return Math.abs(b.vector_score) - Math.abs(a.vector_score)
+        }
+      })
+
+      setBusinesses(sortedBusinesses)
     } catch (error) {
-      console.error('Search failed:', error)
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: "❌ Search failed. Please check your internet connection and try again. If the problem persists, our search service might be temporarily unavailable.",
-        timestamp: new Date()
-      }
-      
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsTyping(false)
+      console.error('❌ Search failed:', error)
+      setErrorMessage('Search failed. Please try again.')
     }
-
-    setInputValue('')
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
+  // Initialize location and search on mount
+  useEffect(() => {
+    getCurrentLocation()
+    
+    // Handle search from URL params
+    const queryFromUrl = searchParams.get('q')
+    if (queryFromUrl) {
+      setSearchQuery(queryFromUrl)
+    }
+  }, [])
+
+  // Auto-search when location is available and we have a query from URL
+  useEffect(() => {
+    const queryFromUrl = searchParams.get('q')
+    if (userLocation && queryFromUrl && !isLoading) {
+      handleSearch(queryFromUrl)
+    }
+  }, [userLocation, searchParams])
+
+  // Re-search when filters change (but only if we already have results)
+  useEffect(() => {
+    if (userLocation && searchQuery && businesses.length > 0 && !isLoading) {
+      console.log('🔄 Filters changed, re-searching with:', filters)
       handleSearch()
     }
-  }
+  }, [filters.category, filters.radius])
 
+  // Business card component
   const BusinessCard = ({ business }: { business: Business }) => {
-    // Extract tags from business_tags string
     const tags = business.business_tags ? business.business_tags.split(',').map(tag => tag.trim()) : []
     
     return (
-      <Card className="mb-3 hover:shadow-lg transition-shadow duration-200">
+      <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -384,9 +343,11 @@ export default function SearchPage() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-medium">{(business.vector_score * -100).toFixed(1)}</span>
+                <span className="text-sm font-medium">
+                  {Math.abs(business.vector_score * 100).toFixed(1)}% match
+                </span>
               </div>
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500" title="Available"></div>
             </div>
           </div>
         </CardHeader>
@@ -396,45 +357,40 @@ export default function SearchPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span>{business.lat_long}</span>
-              <span className="text-primary font-medium">• {business.distance_km.toFixed(1)} km away</span>
+              {business.distance_km !== undefined && (
+                <span className="text-primary font-medium">
+                  • {business.distance_km === 0 ? 'Current location' : `${business.distance_km.toFixed(1)} km away`}
+                </span>
+              )}
             </div>
-
-            <div className="flex flex-wrap gap-1">
-              {tags.slice(0, 3).map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {tag.replace('-', ' ')}
-                </Badge>
-              ))}
-            </div>
-
-            <div className="bg-muted/50 rounded p-2">
-              <p className="text-xs text-muted-foreground mb-1">Search match:</p>
-              <p className="text-xs text-foreground">Vector score: {business.vector_score.toFixed(4)}</p>
-              <p className="text-xs text-foreground">Method: Vectorized search</p>
-            </div>
-
+            
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.slice(0, 3).map((tag, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+                {tags.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{tags.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            )}
+            
             <div className="flex gap-2 pt-2">
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="flex-1"
+                className="w-full"
                 onClick={() => {
-                  const url = `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
-                  window.open(url, '_blank')
+                  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
+                  window.open(googleMapsUrl, '_blank')
                 }}
               >
                 <Navigation className="h-4 w-4 mr-1" />
-                Directions
-              </Button>
-              <Button 
-                size="sm" 
-                className="flex-1"
-                onClick={() => {
-                  window.open(`tel:${business.name}`, '_self')
-                }}
-              >
-                <Phone className="h-4 w-4 mr-1" />
-                Contact
+                Get Directions
               </Button>
             </div>
           </div>
@@ -444,325 +400,251 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background grid-pattern">
-      {/* Resizable Navbar */}
-      <Navbar className="fixed top-0 left-0 right-0 z-50">
-        {/* Desktop Navbar */}
-        <NavBody>
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <Triangle className="w-6 h-6 text-primary fill-primary" />
-            <span className="text-xl font-bold text-foreground">Thikana AI</span>
-          </div>
-
-          {/* Navigation Items */}
-          <NavItems items={[
-            { name: "Home", link: "/" },
-            { name: "Chat", link: "/chat" }
-          ]} />
-
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-4">
-            <AnimatedThemeToggler />
-            <NavbarButton href="/chat" variant="secondary">
-              Business Intel
-            </NavbarButton>
-            <NavbarButton href="/business-register" variant="primary">
-              Register Business
-            </NavbarButton>
-          </div>
-        </NavBody>
-
-        {/* Mobile Navbar */}
-        <MobileNav>
-          <MobileNavHeader>
-            <div className="flex items-center space-x-2">
-              <Triangle className="w-6 h-6 text-primary fill-primary" />
-              <span className="text-xl font-bold text-foreground">Thikana AI</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <AnimatedThemeToggler />
-              <MobileNavToggle 
-                isOpen={isMobileMenuOpen} 
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-              />
-            </div>
-          </MobileNavHeader>
-          <MobileNavMenu 
-            isOpen={isMobileMenuOpen} 
-            onClose={() => setIsMobileMenuOpen(false)}
-          >
-            <div className="space-y-4 p-4">
-              <a href="/" className="block text-foreground hover:text-primary transition-colors">
-                Home
-              </a>
-              <a href="/chat" className="block text-foreground hover:text-primary transition-colors">
-                Chat
-              </a>
-              <div className="space-y-2">
-                <NavbarButton href="/chat" variant="secondary" className="w-full">
-                  Business Intel
-                </NavbarButton>
-                <NavbarButton href="/business-register" variant="primary" className="w-full">
-                  Register Business
-                </NavbarButton>
-              </div>
-            </div>
-          </MobileNavMenu>
-        </MobileNav>
-      </Navbar>
-
-      <div className="pt-20 pb-8 px-4 max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-medium mb-4 border border-primary/30">
-            <Search className="w-4 h-4 mr-2" />
-            Local Business Discovery
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-glow">
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Find Local</span> Businesses
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            AI-powered chatbot search for comprehensive business discovery. Ask for "all coffee shops" to get maximum radius results, or be specific for nearby options.
-          </p>
-        </div>
-
-        {/* Location Loading/Status Section */}
-        {isLoadingLocation ? (
-          <Card className="max-w-2xl mx-auto mb-8 bg-card/50 backdrop-blur-sm border-border shadow-2xl">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-3">Getting Your Location</h3>
-              <p className="text-muted-foreground mb-6">
-                We're automatically detecting your location to show you the most relevant local businesses nearby.
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <span>Please allow location access when prompted by your browser</span>
-              </div>
-            </CardContent>
-          </Card>
-        ) : !userLocation ? (
-          <Card className="max-w-2xl mx-auto mb-8 bg-card/50 backdrop-blur-sm border-border shadow-2xl">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-950/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-3">Location Access Required</h3>
-              <p className="text-muted-foreground mb-6">
-                Location access was denied or unavailable. Please enable location permissions in your browser settings and refresh the page to search for local businesses.
-              </p>
-              <Button 
-                onClick={() => window.location.reload()} 
-                size="lg" 
-                variant="outline"
-                className="mr-3"
-              >
-                Refresh Page
-              </Button>
-              <Button 
-                onClick={getCurrentLocation} 
-                size="lg" 
-                className="bg-primary hover:bg-primary/90"
-              >
-                <MapPin className="w-5 h-5 mr-2" />
-                Try Again
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-4">Find Local Businesses</h1>
+            <p className="text-xl text-muted-foreground mb-6">
+              Discover amazing businesses near you with AI-powered search
+            </p>
+            
             {/* Location Status */}
-            <div className="max-w-2xl mx-auto mb-6">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <MapPin className="w-4 h-4 text-green-600" />
-                <span>Location enabled • Finding businesses near you</span>
-              </div>
-              <div className="mt-2 text-center">
-                <div className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-background/80 rounded-md px-3 py-1 border">
-                  <Globe className="w-3 h-3" />
-                  <span className="font-mono">
-                    {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-muted"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`)
-                    }}
-                    title="Copy coordinates"
-                  >
-                    📋
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-        {/* Chat Interface */}
-        <Card className="h-[800px] flex flex-col bg-card/50 backdrop-blur-sm border shadow-lg">
-          {/* Chat Header */}
-          <div className="border-b p-4 bg-card/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                  <Search className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Local Business Search</h3>
-                  <p className="text-xs text-muted-foreground">Find registered businesses • Real-time data</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="text-xs">
-                  Live Search Active
-                </Badge>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              </div>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              {isLoadingLocation ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Getting your location...</span>
+                </>
+              ) : userLocation ? (
+                <>
+                  <MapPin className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-green-600">Location detected • Ready to search</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 text-red-500" />
+                  <span className="text-sm text-red-600">Location required for search</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {messages.map((message) => (
-              <div key={message.id}>
-                <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-                  <div className={`flex items-start space-x-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.type === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-accent text-accent-foreground'
-                    }`}>
-                      {message.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                    </div>
-                    <div className={`px-4 py-3 rounded-2xl ${
-                      message.type === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
-                    }`}>
-                      <p className="text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-2">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Business Results */}
-                {message.businesses && message.businesses.length > 0 && (
-                  <div className="ml-11 space-y-3">
-                    {message.businesses.map((business, index) => (
-                      <BusinessCard key={`${business.business_name}-${index}`} business={business} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex justify-start mb-4">
-                <div className="flex items-start space-x-3 max-w-[80%]">
-                  <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="px-4 py-3 rounded-2xl bg-muted">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </div>
+          {/* Search Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div className="flex flex-col lg:flex-row gap-4 mb-6">
+              <div className="flex-1 max-w-4xl">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    type="text"
+                    placeholder="Search for restaurants, services, shops..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-12 h-14 text-lg w-full min-w-[500px]"
+                    disabled={!userLocation}
+                  />
                 </div>
               </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t p-4">
-            <div className="flex space-x-3">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={!userLocation ? "Enable location access to start searching..." : "Ask me to find businesses... (e.g., 'find all coffee shops' or 'show me restaurants')"}
-                className="flex-1"
-                disabled={isTyping || !userLocation}
-              />
-              <Button 
-                onClick={() => handleSearch()}
-                disabled={!inputValue.trim() || isTyping || !userLocation}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleSearch()} 
+                  className="h-14 px-8 text-lg"
+                  disabled={!userLocation || !searchQuery.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    <Search className="w-5 h-5 mr-2" />
+                  )}
+                  Search
+                </Button>
+                <Button variant="outline" size="icon" className="h-14 w-14">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
-            
-            {/* Quick Comprehensive Search Suggestions */}
-            <div className="flex flex-wrap gap-2 mt-3">
+
+            {/* Quick Search Suggestions */}
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
               {[
-                "Find all coffee shops",
-                "All restaurants near me", 
-                "List all medical clinics",
-                "Show all repair services",
-                "Find all grocery stores"
+                "Coffee near me",
+                "Pasta restaurants", 
+                "Medical clinics",
+                "Phone repair",
+                "Fresh groceries",
+                "Burger places",
+                "Italian food",
+                "Dental care"
               ].map((suggestion) => (
                 <Button
                   key={suggestion}
                   variant="outline"
                   size="sm"
-                  onClick={() => handleSearch(suggestion)}
-                  className="text-xs hover:bg-primary hover:text-primary-foreground"
-                  disabled={!userLocation}
+                  onClick={() => {
+                    setSearchQuery(suggestion)
+                    handleSearch(suggestion)
+                  }}
+                  className="text-xs"
                 >
                   {suggestion}
                 </Button>
               ))}
             </div>
-            
-            {userLocation && (
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                💡 Try comprehensive searches like "Find all coffee shops" for maximum radius results
-              </p>
-            )}
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <Select value={filters.category} onValueChange={(value) => setFilters({...filters, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="Restaurant">Restaurants</SelectItem>
+                    <SelectItem value="Cafe">Cafes</SelectItem>
+                    <SelectItem value="Medical">Medical</SelectItem>
+                    <SelectItem value="Service">Services</SelectItem>
+                    <SelectItem value="Store">Stores</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Distance: {filters.radius}km</label>
+                <Slider
+                  value={[filters.radius]}
+                  onValueChange={(value) => setFilters({...filters, radius: value[0]})}
+                  max={10000}
+                  min={1}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Sort By</label>
+                <Select value={filters.sortBy} onValueChange={(value) => setFilters({...filters, sortBy: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="relevance">Relevance</SelectItem>
+                    <SelectItem value="distance">Distance</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button 
+                  onClick={() => searchQuery && handleSearch()} 
+                  variant="outline" 
+                  className="w-full"
+                  disabled={!searchQuery || isLoading}
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
           </div>
-        </Card>
 
-        {/* Info Cards */}
-        <div className="mt-8 grid md:grid-cols-3 gap-6">
-          <Card className="p-6 text-center">
-            <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <MapPin className="w-6 h-6 text-primary" />
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {errorMessage}
             </div>
-            <h3 className="font-semibold mb-2">Location-Based Search</h3>
-            <p className="text-sm text-muted-foreground">Find businesses with exact distances and directions</p>
-          </Card>
+          )}
 
-          <Card className="p-6 text-center">
-            <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-6 h-6 text-accent" />
-            </div>
-            <h3 className="font-semibold mb-2">Verified Businesses</h3>
-            <p className="text-sm text-muted-foreground">All businesses are registered and verified on Thikana</p>
-          </Card>
+          {/* Results Section */}
+          {(businesses.length > 0 || isLoading) && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Search Results</h2>
+                  <p className="text-muted-foreground">
+                    Found {totalResults} businesses
+                    {filters.category !== 'all' && (
+                      <span className="ml-2 text-primary">• Category: {filters.category}</span>
+                    )}
+                    <span className="ml-2">• Within {filters.radius}km</span>
+                    {searchInfo?.aiEnhanced && (
+                      <span className="ml-2 text-primary">• AI Enhanced • Vectorized Search</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {filters.category !== 'all' && (
+                    <Badge variant="outline">
+                      {filters.category}
+                    </Badge>
+                  )}
+                  <Badge variant="outline">
+                    {filters.radius}km radius
+                  </Badge>
+                  {searchInfo?.aiEnhanced && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      🤖 AI Enhanced Search
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
-          <Card className="p-6 text-center">
-            <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-primary" />
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Searching for businesses...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Results Grid */}
+              {!isLoading && businesses.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {businesses.map((business, index) => (
+                    <BusinessCard key={business.source_path || index} business={business} />
+                  ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {!isLoading && businesses.length === 0 && searchQuery && (
+                <div className="text-center py-12">
+                  <Globe className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No businesses found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Try adjusting your search terms or increasing the search radius.
+                  </p>
+                  <Button onClick={() => setFilters({...filters, radius: Math.min(filters.radius + 10, 10000)})}>
+                    Expand Search Radius
+                  </Button>
+                </div>
+              )}
             </div>
-            <h3 className="font-semibold mb-2">Smart Search</h3>
-            <p className="text-sm text-muted-foreground">Vectorized search through business data and posts</p>
-          </Card>
+          )}
+
+          {/* Welcome State */}
+          {!businesses.length && !isLoading && !searchQuery && (
+            <div className="text-center py-12">
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">Ready to search</h3>
+              <p className="text-muted-foreground">
+                Enter a search term above to find businesses near you.
+              </p>
+            </div>
+          )}
         </div>
-            </>
-        )}
       </div>
-      
+
       <Footer />
     </div>
   )
