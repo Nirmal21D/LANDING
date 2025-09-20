@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       limit
     }
 
-    console.log('🚀 Making request to external API:', 'http://128.199.11.96:8001/search-businesses')
+    console.log('🚀 Making request to search API:', 'http://128.199.11.96:8001/search-businesses')
     console.log('📤 Request payload:', JSON.stringify(apiRequest, null, 2))
 
     // Forward the request to the actual API
@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(apiRequest),
     })
 
-    console.log('📥 External API response status:', response.status)
-    console.log('📥 External API response headers:', Object.fromEntries(response.headers.entries()))
+    console.log('📥 Search API response status:', response.status)
+    console.log('📥 Search API response headers:', Object.fromEntries(response.headers.entries()))
 
     const responseText = await response.text()
-    console.log('📥 External API response body (first 500 chars):', responseText.slice(0, 500))
+    console.log('📥 Search API response body (first 500 chars):', responseText.slice(0, 500))
 
     if (!response.ok) {
-      console.error(`❌ External API error: ${response.status} ${response.statusText}`)
+      console.error(`❌ Search API error: ${response.status} ${response.statusText}`)
       console.error('❌ Response body:', responseText)
       return NextResponse.json(
         { 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         total_found: data.total_found
       })
     } catch (parseError) {
-      console.error('❌ Failed to parse API response as JSON:', parseError)
+      console.error('❌ Failed to parse search API response as JSON:', parseError)
       console.error('❌ Raw response text:', responseText)
       return NextResponse.json(
         { 
@@ -110,6 +110,34 @@ export async function POST(request: NextRequest) {
         { status: 502 }
       )
     }
+
+    // Call the search logs endpoint in parallel (non-blocking)
+    const searchLogsData = {
+      searchQuery: query,
+      resultsCount: data.results?.length || 0
+    }
+
+    console.log('🔄 Making search logs request to:', 'http://localhost:8005/search-logs')
+    console.log('📤 Search logs payload:', JSON.stringify(searchLogsData, null, 2))
+
+    // Make the search logs call but don't wait for it or let it block the main response
+    fetch('http://localhost:8005/search-logs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(searchLogsData),
+    })
+    .then(logResponse => {
+      if (logResponse.ok) {
+        console.log('✅ Search logs API call successful:', logResponse.status)
+      } else {
+        console.warn('⚠️ Search logs API call failed:', logResponse.status)
+      }
+    })
+    .catch(logError => {
+      console.warn('⚠️ Search logs API call error (non-blocking):', logError.message)
+    })
     
     // Return the response with proper CORS headers
     console.log('✅ Returning successful response')

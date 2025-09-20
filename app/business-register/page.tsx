@@ -30,7 +30,11 @@ export default function BusinessRegisterPage() {
     latitude: '',
     longitude: '',
     businessCategory: '',
-    businessTags: ''
+    businessTags: '',
+    email: '',
+    phone: '',
+    address: '',
+    businessType: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingTags, setIsGeneratingTags] = useState(false)
@@ -65,7 +69,11 @@ export default function BusinessRegisterPage() {
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
         businessCategory: formData.businessCategory,
-        businessTags: formData.businessTags
+        businessTags: formData.businessTags,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        businessType: formData.businessType || formData.businessCategory
       }
       
       console.log('📤 Sending registration request:', registrationData)
@@ -91,13 +99,33 @@ export default function BusinessRegisterPage() {
       console.log('✅ Registration successful:', result)
       
       if (result.ok) {
-        alert(`🎉 Business registered successfully!\n\n` +
+        let successMessage = `🎉 Business registered successfully!\n\n` +
               `✅ Business: ${formData.businessName}\n` +
               `✅ Owner: ${formData.businessOwnerName}\n` +
               `✅ Category: ${formData.businessCategory}\n` +
-              `✅ Location: ${formData.latitude}, ${formData.longitude}\n` +
-              `✅ Records added: ${result.appended}\n\n` +
-              `Your business is now discoverable through AI-powered search!`)
+              `✅ Location: ${formData.latitude}, ${formData.longitude}\n`
+
+        // Add information about first API (append-csv)
+        if (result.appendCsvResult?.success) {
+          successMessage += `✅ CSV Records added: ${result.appended || 'Success'}\n`
+        } else if (result.appendCsvResult?.error) {
+          successMessage += `⚠️ CSV Registration: ${result.appendCsvResult.error}\n`
+        }
+
+        // Add information about second API (business-registered)
+        if (result.businessRegisteredResult?.success) {
+          const businessId = result.businessId || result.businessRegisteredResult.data?.businessId
+          if (businessId) {
+            successMessage += `✅ Business ID: ${businessId}\n`
+          }
+          successMessage += `✅ Registration Status: ${result.businessRegisteredResult.data?.status || 'Completed'}\n`
+        } else if (result.businessRegisteredResult?.error) {
+          successMessage += `⚠️ Business Registration: ${result.businessRegisteredResult.error}\n`
+        }
+
+        successMessage += `\nYour business is now discoverable through AI-powered search!`
+        
+        alert(successMessage)
         
         // Reset form
         setFormData({
@@ -107,7 +135,11 @@ export default function BusinessRegisterPage() {
           latitude: '',
           longitude: '',
           businessCategory: '',
-          businessTags: ''
+          businessTags: '',
+          email: '',
+          phone: '',
+          address: '',
+          businessType: ''
         })
       } else {
         throw new Error(result.error || 'Registration failed')
@@ -220,7 +252,6 @@ export default function BusinessRegisterPage() {
           {/* Navigation Items */}
           <NavItems items={[
             { name: "Home", link: "/" },
-            { name: "Chat", link: "/chat" },
             { name: "Search", link: "/search" }
           ]} />
 
@@ -253,9 +284,6 @@ export default function BusinessRegisterPage() {
             <div className="flex flex-col space-y-4 p-4">
               <Link href="/" className="text-sm font-medium hover:text-primary transition-colors">
                 Home
-              </Link>
-              <Link href="/chat" className="text-sm font-medium hover:text-primary transition-colors">
-                Chat
               </Link>
               <Link href="/search" className="text-sm font-medium hover:text-primary transition-colors">
                 Search
@@ -345,6 +373,83 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
               <p className="text-xs text-muted-foreground">
                 Provide a detailed description to help generate relevant tags automatically
               </p>
+            </div>
+
+            {/* Contact Information Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <User className="w-5 h-5 text-accent" />
+                <h3 className="text-lg font-semibold">Contact Information</h3>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="e.g., contact@business.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="e.g., +1234567890"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-sm font-medium">
+                  Business Address
+                </Label>
+                <Input
+                  id="address"
+                  name="address"
+                  type="text"
+                  placeholder="e.g., 123 Main St, City, State"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="bg-background border-border focus:ring-primary"
+                />
+              </div>
+
+              {/* Business Type */}
+              <div className="space-y-2">
+                <Label htmlFor="businessType" className="text-sm font-medium">
+                  Business Type
+                </Label>
+                <Input
+                  id="businessType"
+                  name="businessType"
+                  type="text"
+                  placeholder="e.g., Technology, Retail, Food Service"
+                  value={formData.businessType}
+                  onChange={handleInputChange}
+                  className="bg-background border-border focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Will use Business Category if not specified
+                </p>
+              </div>
             </div>
 
             {/* Location Details Section */}

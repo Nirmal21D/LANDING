@@ -25,10 +25,10 @@ export function Navbar() {
               Home
             </a>
             <a
-              href="/chat"
+              href="/search"
               className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
             >
-              Chat
+              Search
             </a>
             <a
               href="#features"
@@ -53,7 +53,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             <AnimatedThemeToggler />
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-muted/50">
-              <a href="/login">Sign In</a>
+              <a href="/search">Search</a>
             </Button>
             <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
               <a href="/business-register">Register Business</a>
@@ -76,8 +76,8 @@ export function Navbar() {
               <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </a>
-              <a href="/chat" className="text-muted-foreground hover:text-foreground transition-colors">
-                Chat
+              <a href="/search" className="text-muted-foreground hover:text-foreground transition-colors">
+                Search
               </a>
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
                 Features
@@ -94,7 +94,7 @@ export function Navbar() {
                   <AnimatedThemeToggler />
                 </div>
                 <Button variant="outline" size="sm" className="text-foreground hover:bg-muted/50 bg-transparent">
-                  <a href="/login">Sign In</a>
+                  <a href="/search">Search</a>
                 </Button>
                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
                   <a href="/business-register">Register Business</a>

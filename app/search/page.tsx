@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { MapPin, Search, Navigation, Clock, Star, Globe, Filter, ChevronDown, Loader2, SlidersHorizontal } from "lucide-react"
+import { MapPin, Search, Navigation, Clock, Star, Globe, Filter, ChevronDown, Loader2, SlidersHorizontal, Triangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,8 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { 
-  Navbar
-} from "@/components/navbar"
+  Navbar, 
+  NavBody, 
+  NavItems, 
+  MobileNav, 
+  MobileNavHeader, 
+  MobileNavMenu, 
+  MobileNavToggle,
+  NavbarButton 
+} from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { Footer } from "@/components/ui/footer"
 
@@ -46,6 +53,13 @@ interface SearchResponse {
   search_method: string
 }
 
+interface RecentSearch {
+  searchQuery: string
+  timestamp: string
+  resultsCount?: number
+  id?: string
+}
+
 interface FilterState {
   category: string
   radius: number
@@ -64,6 +78,8 @@ export default function SearchPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [totalResults, setTotalResults] = useState(0)
   const [searchInfo, setSearchInfo] = useState<any>(null)
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
+  const [isLoadingRecentSearches, setIsLoadingRecentSearches] = useState(false)
   
   const [filters, setFilters] = useState<FilterState>({
     category: 'all',
@@ -102,6 +118,47 @@ export default function SearchPage() {
       setUserLocation({ lat: 40.7128, lng: -74.0060 })
     } finally {
       setIsLoadingLocation(false)
+    }
+  }
+
+  // Fetch recent search logs
+  const fetchRecentSearches = async () => {
+    setIsLoadingRecentSearches(true)
+    try {
+      console.log('🔍 Fetching recent search logs...')
+      const response = await fetch('http://localhost:8005/search-logs/recent', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        console.warn('⚠️ Recent searches API failed:', response.status)
+        return
+      }
+
+      const data = await response.json()
+      console.log('📥 Recent searches data:', data)
+      
+      // Handle the specific response format with logs array
+      let searches: RecentSearch[] = []
+      if (data.logs && Array.isArray(data.logs)) {
+        searches = data.logs
+      } else if (Array.isArray(data)) {
+        searches = data
+      } else if (data.searches && Array.isArray(data.searches)) {
+        searches = data.searches
+      } else if (data.data && Array.isArray(data.data)) {
+        searches = data.data
+      }
+
+      setRecentSearches(searches.slice(0, 10)) // Limit to 10 recent searches
+      console.log('✅ Recent searches loaded:', searches.length)
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch recent searches (non-blocking):', error)
+    } finally {
+      setIsLoadingRecentSearches(false)
     }
   }
 
@@ -292,6 +349,9 @@ export default function SearchPage() {
       })
 
       setBusinesses(sortedBusinesses)
+
+      // Fetch recent searches after successful search
+      fetchRecentSearches()
     } catch (error) {
       console.error('❌ Search failed:', error)
       setErrorMessage('Search failed. Please try again.')
@@ -307,6 +367,9 @@ export default function SearchPage() {
     if (queryFromUrl) {
       setSearchQuery(queryFromUrl)
     }
+
+    // Fetch recent searches on page load
+    fetchRecentSearches()
   }, [])
 
   // Auto-search when location is available and we have a query from URL
@@ -330,7 +393,7 @@ export default function SearchPage() {
     const tags = business.business_tags ? business.business_tags.split(',').map(tag => tag.trim()) : []
     
     return (
-      <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+      <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] bg-card/80 backdrop-blur-sm border-border">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -400,14 +463,74 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      {/* Resizable Navbar */}
+      <Navbar className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+        {/* Desktop Navbar */}
+        <NavBody>
+          {/* Logo */}
+          <div className="flex items-center space-x-2">
+            <Triangle className="w-6 h-6 text-primary fill-primary" />
+            <span className="text-xl font-bold text-foreground">Thikana AI</span>
+          </div>
+
+          {/* Navigation Items */}
+          <NavItems items={[
+            { name: "Home", link: "/" },
+            { name: "How it Works", link: "/#how-it-works" },
+            { name: "FAQ", link: "/#faq" }
+          ]} />
+
+          {/* Right Side Actions */}
+          <div className="flex items-center space-x-4">
+            <AnimatedThemeToggler />
+            <NavbarButton href="/business-register" variant="primary">
+              Register Business
+            </NavbarButton>
+          </div>
+        </NavBody>
+
+        {/* Mobile Navbar */}
+        <MobileNav>
+          <MobileNavHeader>
+            <div className="flex items-center space-x-2">
+              <Triangle className="w-6 h-6 text-primary fill-primary" />
+              <span className="text-xl font-bold text-foreground">Thikana AI</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <AnimatedThemeToggler />
+              <MobileNavToggle
+                isOpen={isMobileMenuOpen}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              />
+            </div>
+          </MobileNavHeader>
+
+          <MobileNavMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)}>
+            <div className="flex flex-col space-y-4 p-4">
+              <a href="/" className="text-sm font-medium hover:text-primary transition-colors">
+                Home
+              </a>
+              <a href="/#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
+                How it Works
+              </a>
+              <a href="/#faq" className="text-sm font-medium hover:text-primary transition-colors">
+                FAQ
+              </a>
+              <div className="border-t border-border my-4"></div>
+              <NavbarButton href="/business-register" variant="primary">
+                Register Business
+              </NavbarButton>
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-20">{/* Added pt-20 for fixed navbar */}
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">Find Local Businesses</h1>
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Find Local Businesses</h1>
             <p className="text-xl text-muted-foreground mb-6">
               Discover amazing businesses near you with AI-powered search
             </p>
@@ -421,24 +544,24 @@ export default function SearchPage() {
                 </>
               ) : userLocation ? (
                 <>
-                  <MapPin className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-600">Location detected • Ready to search</span>
+                  <MapPin className="w-4 h-4 text-green-500 dark:text-green-400" />
+                  <span className="text-sm text-green-600 dark:text-green-400">Location detected • Ready to search</span>
                 </>
               ) : (
                 <>
-                  <MapPin className="w-4 h-4 text-red-500" />
-                  <span className="text-sm text-red-600">Location required for search</span>
+                  <MapPin className="w-4 h-4 text-red-500 dark:text-red-400" />
+                  <span className="text-sm text-red-600 dark:text-red-400">Location required for search</span>
                 </>
               )}
             </div>
           </div>
 
           {/* Search Section */}
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+          <div className="bg-card/80 backdrop-blur-sm rounded-lg shadow-lg border border-border p-6 mb-8">
             <div className="flex flex-col lg:flex-row gap-4 mb-6">
               <div className="flex-1 max-w-4xl">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
                     type="text"
                     placeholder="Search for restaurants, services, shops..."
@@ -558,7 +681,7 @@ export default function SearchPage() {
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded mb-6 dark:bg-red-950/50 dark:border-red-900/50 dark:text-red-400">
               {errorMessage}
             </div>
           )}
@@ -640,6 +763,73 @@ export default function SearchPage() {
               <p className="text-muted-foreground">
                 Enter a search term above to find businesses near you.
               </p>
+            </div>
+          )}
+
+          {/* Recent Searches Section - Always visible if we have data */}
+          {recentSearches.length > 0 && (
+            <div className="mt-8">
+              <div className="bg-card/50 backdrop-blur-sm rounded-lg border border-border p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <h3 className="text-xl font-semibold">Recent Search Activity</h3>
+                  </div>
+                  {isLoadingRecentSearches && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentSearches.map((search, index) => (
+                    <Card key={search.timestamp || index} className="hover:shadow-md transition-all duration-200 bg-card/80 border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Search className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground truncate max-w-[150px]" title={search.searchQuery}>
+                              {search.searchQuery}
+                            </span>
+                          </div>
+                          {search.resultsCount !== undefined && (
+                            <Badge variant="secondary" className="text-xs">
+                              {search.resultsCount} results
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-3">
+                          {new Date(search.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => {
+                            setSearchQuery(search.searchQuery)
+                            handleSearch(search.searchQuery)
+                          }}
+                        >
+                          Search Again
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {recentSearches.length >= 10 && (
+                  <div className="text-center mt-4">
+                    <p className="text-xs text-muted-foreground">
+                      Showing last 10 searches
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

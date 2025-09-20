@@ -15,7 +15,11 @@ export async function POST(request: NextRequest) {
       latitude, 
       longitude, 
       businessCategory, 
-      businessTags 
+      businessTags,
+      email,
+      phone,
+      address,
+      businessType
     } = body
     
     console.log('📋 Parsed parameters:', {
@@ -25,7 +29,11 @@ export async function POST(request: NextRequest) {
       latitude,
       longitude,
       businessCategory,
-      businessTags
+      businessTags,
+      email,
+      phone,
+      address,
+      businessType
     })
 
     // Validate required fields
@@ -63,8 +71,8 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Validation passed')
 
-    // Transform the request to match the API's expected format
-    const apiRequest = {
+    // Transform the request to match the first API's expected format
+    const firstApiRequest = {
       name: businessOwnerName,
       business_name: businessName,
       lat_long: `${latitude},${longitude}`,
@@ -72,65 +80,136 @@ export async function POST(request: NextRequest) {
       business_tags: businessTags || ''
     }
 
-    console.log('🚀 Making request to external API:', 'http://128.199.11.96:8001/append-csv')
-    console.log('📤 Request payload:', JSON.stringify(apiRequest, null, 2))
-
-    // Forward the request to the actual API
-    const response = await fetch('http://128.199.11.96:8001/append-csv', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(apiRequest),
-    })
-
-    console.log('📥 External API response status:', response.status)
-    console.log('📥 External API response headers:', Object.fromEntries(response.headers.entries()))
-
-    const responseText = await response.text()
-    console.log('📥 External API response body:', responseText)
-
-    if (!response.ok) {
-      console.error(`❌ External API error: ${response.status} ${response.statusText}`)
-      console.error('❌ Response body:', responseText)
-      return NextResponse.json(
-        { 
-          ok: false,
-          error: 'Business registration failed',
-          details: `External API responded with status: ${response.status} - ${responseText}`,
-          external_api_status: response.status
-        },
-        { status: 502 }
-      )
+    // Transform the request to match the second API's expected format
+    const secondApiRequest = {
+      businessName: businessName,
+      email: email || '',
+      phone: phone || '',
+      address: address || '',
+      businessType: businessType || businessCategory
     }
 
-    let data
-    try {
-      data = JSON.parse(responseText)
-      console.log('✅ Successfully parsed JSON response')
-      console.log('📊 Registration response:', {
-        ok: data.ok,
-        appended: data.appended,
-        csv_path: data.csv_path,
-        coordinates: data.coordinates
+    console.log('🚀 Making requests to both external APIs...')
+    console.log('📤 First API (append-csv) payload:', JSON.stringify(firstApiRequest, null, 2))
+    console.log('📤 Second API (business-registered) payload:', JSON.stringify(secondApiRequest, null, 2))
+
+    // Call both APIs in parallel
+    const [firstResponse, secondResponse] = await Promise.allSettled([
+      fetch('http://128.199.11.96:8001/append-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(firstApiRequest),
+      }),
+      fetch('http://localhost:8004/business-registered', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(secondApiRequest),
       })
-    } catch (parseError) {
-      console.error('❌ Failed to parse API response as JSON:', parseError)
-      console.error('❌ Raw response text:', responseText)
+    ])
+
+    console.log('📥 First API response status:', firstResponse.status === 'fulfilled' ? firstResponse.value.status : 'FAILED')
+    console.log('📥 Second API response status:', secondResponse.status === 'fulfilled' ? secondResponse.value.status : 'FAILED')
+
+    // Handle first API response
+    let firstApiData = null
+    let firstApiError = null
+
+    if (firstResponse.status === 'fulfilled' && firstResponse.value.ok) {
+      const firstResponseText = await firstResponse.value.text()
+      console.log('📥 First API response body:', firstResponseText)
+      
+      try {
+        firstApiData = JSON.parse(firstResponseText)
+        console.log('✅ First API (append-csv) successful')
+      } catch (parseError) {
+        console.error('❌ Failed to parse first API response:', parseError)
+        firstApiError = 'Invalid response format from append-csv API'
+      }
+    } else {
+      if (firstResponse.status === 'fulfilled') {
+        const errorText = await firstResponse.value.text()
+        console.error('❌ First API error:', firstResponse.value.status, errorText)
+        firstApiError = `Append-csv API error: ${firstResponse.value.status} - ${errorText}`
+      } else {
+        console.error('❌ First API failed:', firstResponse.reason)
+        firstApiError = `Append-csv API failed: ${firstResponse.reason}`
+      }
+    }
+
+    // Handle second API response
+    let secondApiData = null
+    let secondApiError = null
+
+    if (secondResponse.status === 'fulfilled' && secondResponse.value.ok) {
+      const secondResponseText = await secondResponse.value.text()
+      console.log('📥 Second API response body:', secondResponseText)
+      
+      try {
+        secondApiData = JSON.parse(secondResponseText)
+        console.log('✅ Second API (business-registered) successful')
+      } catch (parseError) {
+        console.error('❌ Failed to parse second API response:', parseError)
+        secondApiError = 'Invalid response format from business-registered API'
+      }
+    } else {
+      if (secondResponse.status === 'fulfilled') {
+        const errorText = await secondResponse.value.text()
+        console.error('❌ Second API error:', secondResponse.value.status, errorText)
+        secondApiError = `Business-registered API error: ${secondResponse.value.status} - ${errorText}`
+      } else {
+        console.error('❌ Second API failed:', secondResponse.reason)
+        secondApiError = `Business-registered API failed: ${secondResponse.reason}`
+      }
+    }
+
+    // Determine overall success status
+    const hasFirstApiSuccess = firstApiData && !firstApiError
+    const hasSecondApiSuccess = secondApiData && !secondApiError
+
+    if (!hasFirstApiSuccess && !hasSecondApiSuccess) {
+      console.error('❌ Both APIs failed')
       return NextResponse.json(
         { 
           ok: false,
-          error: 'Invalid response format',
-          details: 'External API returned invalid JSON',
-          raw_response: responseText.slice(0, 200)
+          error: 'Both business registration APIs failed',
+          details: {
+            appendCsvError: firstApiError,
+            businessRegisteredError: secondApiError
+          }
         },
         { status: 502 }
       )
     }
-    
-    // Return the response with proper CORS headers
-    console.log('✅ Returning successful registration response')
-    return NextResponse.json(data, {
+
+    // Return combined response
+    const combinedResponse = {
+      ok: hasFirstApiSuccess || hasSecondApiSuccess,
+      appendCsvResult: hasFirstApiSuccess ? {
+        success: true,
+        data: firstApiData
+      } : {
+        success: false,
+        error: firstApiError
+      },
+      businessRegisteredResult: hasSecondApiSuccess ? {
+        success: true,
+        data: secondApiData
+      } : {
+        success: false,
+        error: secondApiError
+      },
+      // For backward compatibility, include first API data in root level
+      ...(hasFirstApiSuccess ? firstApiData : {}),
+      // Add business ID from second API if available
+      businessId: secondApiData?.businessId || null
+    }
+
+    console.log('✅ Returning combined registration response')
+    return NextResponse.json(combinedResponse, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',

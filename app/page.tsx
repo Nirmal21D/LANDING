@@ -17,9 +17,8 @@ import {
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import BusinessFlowDiagram from "@/components/ui/businessflow"
-import ScrapingRagDiagram from "@/components/ui/scrapragflow"
 import { Footer } from "@/components/ui/footer"
-import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle, Compass, Coffee, Shield, ShoppingBag, HelpCircle, Target, DollarSign, Building2, MessageSquare } from "lucide-react"
+import { MapPin, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle, Compass, Coffee, Shield, ShoppingBag, HelpCircle, Target, DollarSign, Building2 } from "lucide-react"
 import Link from "next/link"
 
 export default function ThikanaAILanding() {
@@ -69,8 +68,7 @@ export default function ThikanaAILanding() {
           {/* Navigation Items */}
           <NavItems items={[
             { name: "How it Works", link: "#how-it-works" },
-            { name: "FAQ", link: "#faq" },
-            { name: "Chat", link: "/chat" }
+            { name: "FAQ", link: "#faq" }
           ]} />
 
           {/* Right Side Actions */}
@@ -109,12 +107,9 @@ export default function ThikanaAILanding() {
               <a href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
                 FAQ
               </a>
-              <Link href="/chat" className="text-sm font-medium hover:text-primary transition-colors">
-                Chat
-              </Link>
               <div className="border-t border-border my-4"></div>
-              <NavbarButton href="/login" variant="secondary">
-                Login
+              <NavbarButton href="/search" variant="secondary">
+                Search
               </NavbarButton>
               <NavbarButton href="/business-register" variant="primary">
                 Register Business
@@ -136,8 +131,7 @@ export default function ThikanaAILanding() {
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">discovery</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto mb-12 text-pretty leading-relaxed">
-            Empower your entire neighborhood to discover at the speed of thought, while ensuring accuracy remains at the
-            forefront.
+            Find the perfect local business or register your own. Connect customers with businesses through AI-powered search and intelligent recommendations.
           </p>
           
           {/* Search Bar */}
@@ -199,11 +193,11 @@ export default function ThikanaAILanding() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
-                The complete platform to discover local.
+                The complete platform for business search and registration.
               </h2>
               <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                Your neighborhood's toolkit to stop searching and start discovering. Securely find, explore, and connect
-                with the best local experiences with Thikana AI.
+                Your comprehensive toolkit for finding businesses and getting discovered. Securely search, explore, and register
+                with the best local business platform with Thikana AI.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -220,18 +214,18 @@ export default function ThikanaAILanding() {
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center space-x-2">
                   <Code className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">AI Query Interface</span>
+                  <span className="text-sm font-medium">Business Search Interface</span>
                 </div>
                 <div className="text-xs text-muted-foreground">thikana.ai</div>
               </div>
               <div className="p-6 font-mono text-sm">
-                <div className="text-green-600 dark:text-green-400">$ thikana ask</div>
+                <div className="text-green-600 dark:text-green-400">$ thikana search</div>
                 <div className="text-foreground mt-2">
                   "Find me the best coffee shop near downtown with WiFi and outdoor seating"
                 </div>
-                <div className="text-blue-600 dark:text-blue-400 mt-4">→ Analyzing local businesses...</div>
+                <div className="text-blue-600 dark:text-blue-400 mt-4">→ Searching registered businesses...</div>
                 <div className="text-yellow-600 dark:text-yellow-400 mt-1">→ Checking reviews and amenities...</div>
-                <div className="text-green-600 dark:text-green-400 mt-1">✓ Found 3 perfect matches</div>
+                <div className="text-green-600 dark:text-green-400 mt-1">✓ Found 3 registered matches</div>
                 <div className="text-foreground mt-3">
                   <div className="text-purple-700 dark:text-purple-400">1. Brew & Bytes Café</div>
                   <div className="text-muted-foreground ml-4">• 4.8★ rating • Free WiFi • Large patio</div>
@@ -321,7 +315,7 @@ export default function ThikanaAILanding() {
               <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
               <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
                 <div className="w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <MessageCircle className="w-8 h-8 text-white" />
+                  <Search className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-5xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent mb-3">
                   24/7
@@ -365,12 +359,12 @@ export default function ThikanaAILanding() {
                 <span className="text-primary font-medium">Innovation</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                Faster discovery. <span className="text-muted-foreground">More innovation.</span>
+                Faster business search. <span className="text-muted-foreground">Better connections.</span>
               </h2>
               <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                The platform for rapid local exploration. Let your curiosity focus on discovering amazing places instead
+                The platform for rapid business discovery and registration. Let your customers focus on finding amazing places instead
                 of managing endless search results with automated AI recommendations, built-in local insights, and
-                integrated community feedback.
+                integrated business profiles.
               </p>
             </div>
 
@@ -392,10 +386,10 @@ export default function ThikanaAILanding() {
               <Card className="p-6 bg-card/50 border-white/10 hover:bg-card/70 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center">
-                    <MessageCircle className="w-6 h-6 text-accent" />
+                    <Search className="w-6 h-6 text-accent" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">Natural Conversations</h3>
+                    <h3 className="font-semibold text-lg">Natural Search</h3>
                     <p className="text-muted-foreground">
                       Ask questions like you would to a local friend who knows everything.
                     </p>
@@ -427,25 +421,12 @@ export default function ThikanaAILanding() {
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">How It Works</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Discover how Thikana AI processes real-time data and connects businesses with customers through advanced AI technology
+              Discover how Thikana AI connects businesses with customers through intelligent search and streamlined registration
             </p>
           </div>
           
           {/* Technical Flowcharts */}
           <div className="space-y-20">
-            {/* RAG Query Flowchart */}
-            <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-3">AI Content Processing & RAG Chat System</h3>
-                <p className="text-muted-foreground">
-                  Real-time web scraping, content vectorization, and intelligent query processing for business intelligence insights.
-                </p>
-              </div>
-              <div className="h-[800px]">
-                <ScrapingRagDiagram />
-              </div>
-            </div>
-
             {/* Business Registration Flowchart */}
             <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
               <div className="mb-6">
@@ -472,11 +453,11 @@ export default function ThikanaAILanding() {
             AI-Powered Discovery
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
-            Discover What's <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Nearby</span>
+            Find & Register <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Local Businesses</span>
           </h2>
           <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto text-pretty leading-relaxed">
-            From the best coffee shops to emergency services, get instant AI-powered recommendations for everything
-            around you.
+            From searching the best coffee shops to registering your own business, get instant AI-powered connections for everything
+            in your community.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-4xl mx-auto">
@@ -496,10 +477,10 @@ export default function ThikanaAILanding() {
               <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
               <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
                 <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Shield className="w-8 h-8 text-white" />
+                  <Building2 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">Emergency Services</h3>
-                <p className="text-muted-foreground text-sm">Quick access to essential services</p>
+                <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">Business Registration</h3>
+                <p className="text-muted-foreground text-sm">Register your business and get discovered</p>
                 <div className="mt-4 h-1 bg-gradient-to-r from-accent to-primary rounded-full"></div>
               </div>
             </div>
@@ -517,12 +498,20 @@ export default function ThikanaAILanding() {
             </div>
           </div>
           
-          <Button size="lg" className="gradient-secondary text-white px-8 py-4 text-lg font-semibold">
-            <a href="/search" className="flex items-center">
-              Start Chatting
-              <MessageCircle className="w-5 h-5 ml-2" />
-            </a>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="gradient-secondary text-white px-8 py-4 text-lg font-semibold">
+              <a href="/search" className="flex items-center">
+                Start Searching
+                <Search className="w-5 h-5 ml-2" />
+              </a>
+            </Button>
+            <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white px-8 py-4 text-lg font-semibold">
+              <a href="/business-register" className="flex items-center">
+                Register Business
+                <Building2 className="w-5 h-5 ml-2" />
+              </a>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -591,14 +580,14 @@ export default function ThikanaAILanding() {
               <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-white" />
+                    <Search className="w-5 h-5 text-white" />
                   </div>
-                  What types of questions can I ask?
+                  What types of searches can I perform?
                 </div>
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
-                Ask anything about local businesses! "Best pizza near me", "Dentist open on weekends", "Kid-friendly
-                restaurants with parking" - our AI understands natural language and provides contextual answers.
+                Search for anything local! "Best pizza near me", "Dentist open on weekends", "Kid-friendly
+                restaurants with parking" - our AI understands natural language and finds exactly what you need.
               </AccordionContent>
             </AccordionItem>
 
