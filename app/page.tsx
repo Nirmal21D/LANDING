@@ -462,80 +462,34 @@ export default function ThikanaAILanding() {
       {/* Footer */}
       <footer className="py-16 border-t border-border bg-background text-foreground">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">T</span>
-                </div>
-                <span className="text-2xl font-bold">Thikana AI</span>
+          <div className="flex flex-col items-center justify-center space-y-6">
+            {/* Logo and Branding */}
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">T</span>
               </div>
-              <p className="text-lg text-muted-foreground mb-6 max-w-md">
-                Find Local. Get Smart Answers. Discover the best businesses around you with AI-powered recommendations.
+              <span className="text-2xl font-bold">Thikana AI</span>
+            </div>
+            
+            {/* Description */}
+            <p className="text-lg text-muted-foreground text-center max-w-md">
+              Find Local. Get Smart Answers. Discover the best businesses around you with AI-powered recommendations.
+            </p>
+
+            {/* Official Link */}
+            <div className="flex flex-col items-center space-y-2">
+              <a 
+                href="https://thikana-portal.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:from-primary/90 hover:to-accent/90 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Visit Official Portal
+              </a>
+              <p className="text-xs text-muted-foreground">
+                Official Thikana AI Portal
               </p>
-              <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
-                  <Globe className="w-5 h-5" />
-                </div>
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer">
-                  <Users className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm opacity-80">
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    How it Works
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    API
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm opacity-80">
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Help Center
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Contact Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:opacity-100 transition-opacity">
-                    Terms of Service
-                  </a>
-                </li>
-              </ul>
             </div>
           </div>
 

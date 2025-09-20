@@ -125,13 +125,22 @@ export default function BusinessRegisterPage() {
       }
 
       const data = await response.json()
-      setFormData({
-        ...formData,
-        businessTags: data.tags.join(', ')
-      })
+      
+      if (data.success && data.tags) {
+        setFormData({
+          ...formData,
+          businessTags: data.tags.join(', ')
+        })
+        
+        // Show success message
+        const tagCount = data.tags.length
+        alert(`✨ Successfully generated ${tagCount} AI-powered tags for your business!`)
+      } else {
+        throw new Error(data.error || 'No tags generated')
+      }
     } catch (error) {
       console.error('Error generating tags:', error)
-      alert('Failed to generate tags. Please try again.')
+      alert('⚠️ Failed to generate AI tags. Please try again or add tags manually.')
     } finally {
       setIsGeneratingTags(false)
     }
@@ -374,12 +383,12 @@ export default function BusinessRegisterPage() {
                   {isGeneratingTags ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-accent mr-2"></div>
-                      Generating...
+                      AI Generating...
                     </div>
                   ) : (
                     <div className="flex items-center">
                       <Wand2 className="w-3 h-3 mr-2" />
-                      Generate Tags
+                      Generate AI Tags
                     </div>
                   )}
                 </Button>
