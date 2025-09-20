@@ -58,18 +58,17 @@ export const Navbar = ({ children, className }: NavbarProps) => {
   const [visible, setVisible] = useState<boolean>(false);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
-    if (latest > 100) {
-      setVisible(true);
-    } else {
-      setVisible(false);
+    const shouldBeVisible = latest > 100;
+    if (shouldBeVisible !== visible) {
+      setVisible(shouldBeVisible);
     }
   });
 
   return (
     <motion.div
       ref={ref}
-      // IMPORTANT: Change this to class of `fixed` if you want the navbar to be fixed
       className={cn("sticky inset-x-0 top-20 z-40 w-full", className)}
+      style={{ willChange: "transform" }}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -97,16 +96,16 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
       }}
       transition={{
         type: "spring",
-        stiffness: 300,
-        damping: 30,
-        mass: 0.8,
-        duration: 0.6,
+        stiffness: 150,
+        damping: 25,
+        mass: 1.2,
+        duration: 1.2,
       }}
       style={{
         minWidth: "800px",
       }}
       className={cn(
-        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent transition-all duration-300 ease-out",
+        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent transition-all duration-700 ease-out",
         visible && "bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md",
         className,
       )}
@@ -123,7 +122,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-zinc-600 transition-all duration-300 ease-out hover:text-zinc-800 lg:flex lg:space-x-2",
+        "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-zinc-600 transition-all duration-500 ease-out hover:text-zinc-800 lg:flex lg:space-x-2",
         className,
       )}
     >
@@ -131,16 +130,16 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         <motion.a
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
-          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300 transition-all duration-200 hover:text-neutral-900 dark:hover:text-neutral-100"
+          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300 transition-all duration-400 hover:text-neutral-900 dark:hover:text-neutral-100"
           key={`link-${idx}`}
           href={item.link}
           whileHover={{ 
             scale: 1.05,
-            transition: { duration: 0.2, ease: "easeOut" }
+            transition: { duration: 0.4, ease: "easeOut" }
           }}
           whileTap={{ 
             scale: 0.95,
-            transition: { duration: 0.1 }
+            transition: { duration: 0.2 }
           }}
         >
           {hovered === idx && (
@@ -152,9 +151,9 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{
                 type: "spring",
-                stiffness: 400,
-                damping: 30,
-                duration: 0.3
+                stiffness: 200,
+                damping: 20,
+                duration: 0.6
               }}
             />
           )}
@@ -182,13 +181,13 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
       }}
       transition={{
         type: "spring",
-        stiffness: 300,
-        damping: 30,
-        mass: 0.8,
-        duration: 0.6,
+        stiffness: 150,
+        damping: 25,
+        mass: 1.2,
+        duration: 1.2,
       }}
       className={cn(
-        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-transparent px-0 py-2 lg:hidden transition-all duration-300 ease-out",
+        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-transparent px-0 py-2 lg:hidden transition-all duration-700 ease-out",
         visible && "bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md",
         className,
       )}
@@ -241,9 +240,9 @@ export const MobileNavMenu = ({
           }}
           transition={{
             type: "spring",
-            stiffness: 400,
-            damping: 30,
-            duration: 0.4,
+            stiffness: 200,
+            damping: 25,
+            duration: 0.8,
           }}
           className={cn(
             "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-xl bg-white/95 backdrop-blur-md px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-neutral-950/95 border border-white/20 dark:border-neutral-800/20",
@@ -269,8 +268,8 @@ export const MobileNavToggle = ({
       onClick={onClick}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className="relative z-50 p-1 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
+      transition={{ type: "spring", stiffness: 300, damping: 20, duration: 0.4 }}
+      className="relative z-50 p-1 rounded-md transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-neutral-800"
     >
       <AnimatePresence mode="wait">
         {isOpen ? (
@@ -279,7 +278,7 @@ export const MobileNavToggle = ({
             initial={{ rotate: -90, opacity: 0 }}
             animate={{ rotate: 0, opacity: 1 }}
             exit={{ rotate: 90, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <IconX className="w-6 h-6 text-black dark:text-white" />
           </motion.div>
@@ -289,7 +288,7 @@ export const MobileNavToggle = ({
             initial={{ rotate: 90, opacity: 0 }}
             animate={{ rotate: 0, opacity: 1 }}
             exit={{ rotate: -90, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <IconMenu2 className="w-6 h-6 text-black dark:text-white" />
           </motion.div>
@@ -334,24 +333,35 @@ export const NavbarButton = ({
   | React.ComponentPropsWithoutRef<"button">
 )) => {
   const baseStyles =
-    "px-4 py-2 rounded-md bg-white button bg-white text-black text-sm font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center";
+    "px-4 py-2 rounded-md bg-white button bg-white text-black text-sm font-bold relative cursor-pointer transition-all duration-500 ease-out inline-block text-center";
 
   const variantStyles = {
     primary:
-      "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
-    secondary: "bg-transparent shadow-none dark:text-white",
-    dark: "bg-black text-white shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
+      "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] hover:shadow-lg hover:-translate-y-1",
+    secondary: "bg-transparent shadow-none dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-800",
+    dark: "bg-black text-white shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] hover:shadow-lg hover:-translate-y-1",
     gradient:
-      "bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",
+      "bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset] hover:shadow-lg hover:-translate-y-1",
   };
 
   return (
-    <Tag
-      href={href || undefined}
-      className={cn(baseStyles, variantStyles[variant], className)}
-      {...props}
+    <motion.div
+      whileHover={{ 
+        scale: 1.05,
+        transition: { duration: 0.4, ease: "easeOut" }
+      }}
+      whileTap={{ 
+        scale: 0.95,
+        transition: { duration: 0.2 }
+      }}
     >
-      {children}
-    </Tag>
+      <Tag
+        href={href || undefined}
+        className={cn(baseStyles, variantStyles[variant], className)}
+        {...props}
+      >
+        {children}
+      </Tag>
+    </motion.div>
   );
 };

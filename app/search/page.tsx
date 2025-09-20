@@ -29,88 +29,36 @@ interface Message {
 }
 
 interface Business {
-  id: string
-  owner_name: string
+  name: string
   business_name: string
-  category: string
-  tags: string[]
   latitude: number
   longitude: number
-  distance: number
-  rating: number
-  isOpen: boolean
-  description: string
-  address: string
-  phone?: string
-  posts?: string[]
+  lat_long: string
+  business_category: string
+  business_tags: string
+  vector_score: number
+  source_path: string
+  distance_km: number
 }
 
-// Mock local businesses registered on Thikana
-const mockBusinesses: Business[] = [
-  {
-    id: "1",
-    owner_name: "Rajesh Kumar",
-    business_name: "Pure Veg Delight",
-    category: "Restaurant",
-    tags: ["pure-veg", "indian", "family-restaurant", "lunch", "dinner"],
-    latitude: 37.7749,
-    longitude: -122.4194,
-    distance: 0.3,
-    rating: 4.6,
-    isOpen: true,
-    description: "100% pure vegetarian restaurant serving authentic Indian cuisine",
-    address: "123 Main Street, Downtown",
-    phone: "+1-555-0123",
-    posts: ["New South Indian menu launched!", "Fresh organic vegetables daily"]
-  },
-  {
-    id: "2",
-    owner_name: "Dr. Sarah Wilson",
-    business_name: "Wilson Family Clinic",
-    category: "Medical",
-    tags: ["family-doctor", "clinic", "consultation", "emergency"],
-    latitude: 37.7849,
-    longitude: -122.4094,
-    distance: 0.8,
-    rating: 4.8,
-    isOpen: true,
-    description: "Family medical practice with 15+ years experience",
-    address: "456 Health Ave, Medical District",
-    phone: "+1-555-0456",
-    posts: ["Weekend consultation available", "Vaccination drive this month"]
-  },
-  {
-    id: "3",
-    owner_name: "Mike Chen",
-    business_name: "Tech Repair Hub",
-    category: "Service",
-    tags: ["laptop-repair", "mobile-repair", "freelancer", "tech-support"],
-    latitude: 37.7649,
-    longitude: -122.4294,
-    distance: 1.2,
-    rating: 4.4,
-    isOpen: false,
-    description: "Freelance tech repair specialist - laptops, mobiles, tablets",
-    address: "789 Tech Street, Silicon Valley",
-    phone: "+1-555-0789",
-    posts: ["Same day laptop repair service", "iPhone screen replacement - 30 min"]
-  },
-  {
-    id: "4",
-    owner_name: "Priya Sharma",
-    business_name: "Green Grocery Store",
-    category: "Store",
-    tags: ["organic", "vegetables", "fruits", "grocery", "local"],
-    latitude: 37.7549,
-    longitude: -122.4394,
-    distance: 0.6,
-    rating: 4.7,
-    isOpen: true,
-    description: "Fresh organic produce and daily groceries",
-    address: "321 Green Lane, Suburb",
-    phone: "+1-555-0321",
+interface SearchResponse {
+  ok: boolean
+  results: Business[]
+  search_params: {
+    user_location: {
+      lat: number
+      lng: number
+    }
+    max_distance_km: number
+    category_filter?: string
+    tag_filters?: string[]
+    query: string
   }
-]
+  total_found: number
+  search_method: string
+}
+
+// Mock local businesses registered on Thikana - removed as we'll use real API
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
@@ -127,6 +75,7 @@ export default function SearchPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Handle search query from URL parameters and auto-fetch location
@@ -209,23 +158,101 @@ export default function SearchPage() {
     }
   }
 
-  // Search businesses based on query (vectorized search simulation)
-  const searchBusinesses = (query: string): Business[] => {
-    const queryLower = query.toLowerCase()
+  // Search businesses using the real API with Gemini AI-enhanced filters
+  const searchBusinesses = async (query: string): Promise<{ businesses: Business[], filterInfo?: any }> => {
+    if (!userLocation) return { businesses: [] }
     
-    // Simulate vectorized search through business data, posts, and descriptions
-    return mockBusinesses.filter(business => {
-      const nameMatch = business.business_name.toLowerCase().includes(queryLower)
-      const categoryMatch = business.category.toLowerCase().includes(queryLower)
-      const tagMatch = business.tags.some(tag => tag.toLowerCase().includes(queryLower))
-      const descriptionMatch = business.description.toLowerCase().includes(queryLower)
-      const postMatch = business.posts?.some(post => post.toLowerCase().includes(queryLower))
+    try {
+      setIsSearching(true)
       
-      return nameMatch || categoryMatch || tagMatch || descriptionMatch || postMatch
-    }).sort((a, b) => a.distance - b.distance).slice(0, 5)
+      // Generate intelligent filters using Gemini AI
+      const filtersResponse = await fetch('/api/generate-search-filters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+      })
+      
+      let category_filter: string | undefined
+      let tag_filters: string[] = []
+      let enhanced_query = query
+      let max_distance_km = 10
+      let limit = 5
+      let search_type = 'specific'
+      let aiFiltersUsed = false
+      
+      if (filtersResponse.ok) {
+        const filtersData = await filtersResponse.json()
+        if (filtersData.success) {
+          category_filter = filtersData.filters.category_filter
+          tag_filters = filtersData.filters.tag_filters
+          enhanced_query = filtersData.filters.enhanced_query || query
+          max_distance_km = filtersData.filters.max_distance_km || 10
+          limit = filtersData.filters.limit || 5
+          search_type = filtersData.filters.search_type || 'specific'
+          aiFiltersUsed = true
+          console.log('🤖 Gemini AI generated filters:', filtersData.filters)
+        } else {
+          console.warn('AI filter generation failed, using fallback')
+        }
+      } else {
+        console.warn('AI filter API unavailable, using original query')
+      }
+      
+      const requestBody = {
+        user_lat: userLocation.lat,
+        user_lng: userLocation.lng,
+        query: enhanced_query,
+        max_distance_km: max_distance_km,
+        ...(category_filter && { category_filter }),
+        ...(tag_filters.length > 0 && { tag_filters }),
+        limit: limit
+      }
+      
+      console.log('🔍 Enhanced search request:', requestBody)
+      
+      const response = await fetch('http://128.199.11.96:8001/search-businesses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data: SearchResponse = await response.json()
+      console.log('Search response:', data)
+      
+      if (data.ok) {
+        return { 
+          businesses: data.results,
+          filterInfo: aiFiltersUsed ? {
+            category_filter,
+            tag_filters,
+            enhanced_query,
+            max_distance_km,
+            limit,
+            search_type,
+            aiEnhanced: true
+          } : undefined
+        }
+      } else {
+        throw new Error('Search failed')
+      }
+      
+    } catch (error) {
+      console.error('Search error:', error)
+      return { businesses: [] }
+    } finally {
+      setIsSearching(false)
+    }
   }
 
-  const handleSearch = (searchQuery?: string) => {
+  const handleSearch = async (searchQuery?: string) => {
     const query = searchQuery || inputValue.trim()
     if (!query) return
 
@@ -253,17 +280,55 @@ export default function SearchPage() {
     setMessages(prev => [...prev, userMessage])
     setIsTyping(true)
 
-    // Simulate search processing
-    setTimeout(() => {
-      const foundBusinesses = searchBusinesses(query)
+    try {
+      // Search using real API
+      const searchResult = await searchBusinesses(query)
+      const foundBusinesses = searchResult.businesses
+      const filterInfo = searchResult.filterInfo
       let botResponse = ""
 
       if (foundBusinesses.length > 0) {
-        botResponse = `🎯 Found ${foundBusinesses.length} local businesses matching "${query}":\n\nThese are registered businesses on Thikana with verified locations and real-time information.`
+        // Different messages based on search type
+        if (filterInfo?.search_type === 'comprehensive') {
+          botResponse = `🔍 **Comprehensive Search Results**\n\nFound ${foundBusinesses.length} businesses matching "${query}" within ${filterInfo.max_distance_km}km radius:`
+        } else if (filterInfo?.search_type === 'broad') {
+          botResponse = `🎯 **Broad Search Results**\n\nFound ${foundBusinesses.length} businesses matching "${query}" within ${filterInfo.max_distance_km}km:`
+        } else {
+          botResponse = `🎯 Found ${foundBusinesses.length} local businesses matching "${query}":`
+        }
+        
+        // Add AI enhancement info if filters were used
+        if (filterInfo?.aiEnhanced) {
+          botResponse += "\n\n🤖 **AI-Enhanced Search**"
+          if (filterInfo.search_type === 'comprehensive') {
+            botResponse += "\n• Search Type: Comprehensive (maximum radius)"
+          } else if (filterInfo.search_type === 'broad') {
+            botResponse += "\n• Search Type: Broad (expanded area)"
+          }
+          if (filterInfo.category_filter) {
+            botResponse += `\n• Category: ${filterInfo.category_filter}`
+          }
+          if (filterInfo.tag_filters?.length > 0) {
+            botResponse += `\n• Tags: ${filterInfo.tag_filters.join(', ')}`
+          }
+          if (filterInfo.enhanced_query !== query) {
+            botResponse += `\n• Enhanced query: "${filterInfo.enhanced_query}"`
+          }
+          botResponse += `\n• Radius: ${filterInfo.max_distance_km}km • Results: ${filterInfo.limit}`
+        }
+        
+        botResponse += "\n\nThese are registered businesses on Thikana with verified locations and real-time information."
       } else {
-        botResponse = `🔍 No businesses found matching "${query}". Try searching for:\n• Restaurants near me\n• Medical clinics\n• Repair services\n• Grocery stores\n• Freelancers`
-        // Show some sample businesses
-        foundBusinesses.push(...mockBusinesses.slice(0, 2))
+        let searchScope = ""
+        if (filterInfo?.search_type === 'comprehensive') {
+          searchScope = ` within ${filterInfo.max_distance_km}km (maximum radius)`
+        } else if (filterInfo?.search_type === 'broad') {
+          searchScope = ` within ${filterInfo.max_distance_km}km (expanded area)`
+        } else {
+          searchScope = " in your immediate area"
+        }
+        
+        botResponse = `🔍 No businesses found matching "${query}"${searchScope}.\n\n💡 **Try these comprehensive searches:**\n• "Find all coffee shops"\n• "All restaurants near me"\n• "List all medical clinics"\n• "Show all repair services"\n• "Find all grocery stores"\n\nOr be more specific with your needs.`
       }
 
       const botMessage: Message = {
@@ -275,8 +340,21 @@ export default function SearchPage() {
       }
 
       setMessages(prev => [...prev, botMessage])
+      
+    } catch (error) {
+      console.error('Search failed:', error)
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: "❌ Search failed. Please check your internet connection and try again. If the problem persists, our search service might be temporarily unavailable.",
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsTyping(false)
-    }, 1500)
+    }
 
     setInputValue('')
   }
@@ -288,75 +366,82 @@ export default function SearchPage() {
     }
   }
 
-  const BusinessCard = ({ business }: { business: Business }) => (
-    <Card className="mb-3 hover:shadow-lg transition-shadow duration-200">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardTitle className="text-lg font-semibold">{business.business_name}</CardTitle>
-            <CardDescription className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground">by {business.owner_name}</span>
-              <Badge variant="outline" className="text-xs">{business.category}</Badge>
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">{business.rating}</span>
+  const BusinessCard = ({ business }: { business: Business }) => {
+    // Extract tags from business_tags string
+    const tags = business.business_tags ? business.business_tags.split(',').map(tag => tag.trim()) : []
+    
+    return (
+      <Card className="mb-3 hover:shadow-lg transition-shadow duration-200">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <CardTitle className="text-lg font-semibold">{business.business_name}</CardTitle>
+              <CardDescription className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">by {business.name}</span>
+                <Badge variant="outline" className="text-xs">{business.business_category}</Badge>
+              </CardDescription>
             </div>
-            <div className={`w-2 h-2 rounded-full ${business.isOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">{business.description}</p>
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>{business.address}</span>
-            <span className="text-primary font-medium">• {business.distance} km away</span>
-          </div>
-
-          {business.phone && (
-            <div className="flex items-center gap-2 text-sm">
-              <Phone className="h-4 w-4" />
-              <span>{business.phone}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-sm font-medium">{(business.vector_score * -100).toFixed(1)}</span>
+              </div>
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
             </div>
-          )}
-
-          <div className="flex flex-wrap gap-1">
-            {business.tags.slice(0, 3).map(tag => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                {tag.replace('-', ' ')}
-              </Badge>
-            ))}
           </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              <span>{business.lat_long}</span>
+              <span className="text-primary font-medium">• {business.distance_km.toFixed(1)} km away</span>
+            </div>
 
-          {business.posts && business.posts.length > 0 && (
-            <div className="mt-3 p-2 bg-muted/50 rounded">
-              <p className="text-xs text-muted-foreground mb-1">Latest posts:</p>
-              {business.posts.slice(0, 2).map((post, index) => (
-                <p key={index} className="text-xs text-foreground">• {post}</p>
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 3).map((tag, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {tag.replace('-', ' ')}
+                </Badge>
               ))}
             </div>
-          )}
 
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" variant="outline" className="flex-1">
-              <Navigation className="h-4 w-4 mr-1" />
-              Directions
-            </Button>
-            <Button size="sm" className="flex-1">
-              <Phone className="h-4 w-4 mr-1" />
-              Contact
-            </Button>
+            <div className="bg-muted/50 rounded p-2">
+              <p className="text-xs text-muted-foreground mb-1">Search match:</p>
+              <p className="text-xs text-foreground">Vector score: {business.vector_score.toFixed(4)}</p>
+              <p className="text-xs text-foreground">Method: Vectorized search</p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  const url = `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
+                  window.open(url, '_blank')
+                }}
+              >
+                <Navigation className="h-4 w-4 mr-1" />
+                Directions
+              </Button>
+              <Button 
+                size="sm" 
+                className="flex-1"
+                onClick={() => {
+                  window.open(`tel:${business.name}`, '_self')
+                }}
+              >
+                <Phone className="h-4 w-4 mr-1" />
+                Contact
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background grid-pattern">
@@ -438,7 +523,7 @@ export default function SearchPage() {
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Find Local</span> Businesses
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Chat-style search for registered stores, medical services, freelancers & more. Get location-based results with real-time data.
+            AI-powered chatbot search for comprehensive business discovery. Ask for "all coffee shops" to get maximum radius results, or be specific for nearby options.
           </p>
         </div>
 
@@ -533,7 +618,7 @@ export default function SearchPage() {
               </div>
               <div className="flex items-center space-x-2">
                 <Badge variant="outline" className="text-xs">
-                  {mockBusinesses.length} businesses
+                  Live Search Active
                 </Badge>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
@@ -569,8 +654,8 @@ export default function SearchPage() {
                 {/* Business Results */}
                 {message.businesses && message.businesses.length > 0 && (
                   <div className="ml-11 space-y-3">
-                    {message.businesses.map((business) => (
-                      <BusinessCard key={business.id} business={business} />
+                    {message.businesses.map((business, index) => (
+                      <BusinessCard key={`${business.business_name}-${index}`} business={business} />
                     ))}
                   </div>
                 )}
@@ -605,7 +690,7 @@ export default function SearchPage() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={!userLocation ? "Enable location access to start searching..." : "Search for businesses... (e.g., 'pure veg restaurants near me')"}
+                placeholder={!userLocation ? "Enable location access to start searching..." : "Ask me to find businesses... (e.g., 'find all coffee shops' or 'show me restaurants')"}
                 className="flex-1"
                 disabled={isTyping || !userLocation}
               />
@@ -618,27 +703,33 @@ export default function SearchPage() {
               </Button>
             </div>
             
-            {/* Quick Suggestions */}
+            {/* Quick Comprehensive Search Suggestions */}
             <div className="flex flex-wrap gap-2 mt-3">
               {[
-                "Pure veg restaurants near me",
-                "Laptop repair shops",
-                "Family doctors nearby",
-                "Organic grocery stores",
-                "Mobile repair services"
+                "Find all coffee shops",
+                "All restaurants near me", 
+                "List all medical clinics",
+                "Show all repair services",
+                "Find all grocery stores"
               ].map((suggestion) => (
                 <Button
                   key={suggestion}
                   variant="outline"
                   size="sm"
-                  onClick={() => setInputValue(suggestion)}
-                  className="text-xs"
-                  disabled={isTyping || !userLocation}
+                  onClick={() => handleSearch(suggestion)}
+                  className="text-xs hover:bg-primary hover:text-primary-foreground"
+                  disabled={!userLocation}
                 >
                   {suggestion}
                 </Button>
               ))}
             </div>
+            
+            {userLocation && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                💡 Try comprehensive searches like "Find all coffee shops" for maximum radius results
+              </p>
+            )}
           </div>
         </Card>
 
