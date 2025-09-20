@@ -17,6 +17,7 @@ import {
   NavbarButton 
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { Footer } from "@/components/ui/footer"
 import { Send, Bot, User, Sparkles, MapPin, Clock, Star, ExternalLink, Triangle, Globe, Database, Zap, Filter } from "lucide-react"
 import Link from "next/link"
 
@@ -540,6 +541,8 @@ function ChatInterface() {
           </Card>
         </div>
       </div>
+      
+      <Footer />
     </div>
   )
 }

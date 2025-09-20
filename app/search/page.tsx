@@ -18,6 +18,7 @@ import {
   NavbarButton 
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { Footer } from "@/components/ui/footer"
 
 interface Message {
   id: string
@@ -670,6 +671,8 @@ export default function SearchPage() {
             </>
         )}
       </div>
+      
+      <Footer />
     </div>
   )
 }

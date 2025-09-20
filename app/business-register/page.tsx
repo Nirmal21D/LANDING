@@ -20,6 +20,7 @@ import {
   NavbarButton 
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { Footer } from "@/components/ui/footer"
 
 export default function BusinessRegisterPage() {
   const [formData, setFormData] = useState({
@@ -466,6 +467,8 @@ export default function BusinessRegisterPage() {
           </Card>
         </div>
       </div>
+      
+      <Footer />
     </div>
   )
 }
