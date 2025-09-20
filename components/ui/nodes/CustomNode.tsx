@@ -10,7 +10,11 @@ import {
   Bot, 
   Search, 
   Check,
-  Building2
+  Building2,
+  Globe,
+  FileText,
+  Cloud,
+  MessageCircle
 } from 'lucide-react'
 
 const iconMap = {
@@ -22,33 +26,47 @@ const iconMap = {
   search: Search,
   check: Check,
   building: Building2,
+  globe: Globe,
+  file: FileText,
+  cloud: Cloud,
+  message: MessageCircle,
 }
 
 const typeColors = {
   userInteraction: {
-    bg: 'bg-blue-500',
-    border: 'border-blue-400',
-    text: 'text-blue-900'
+    bg: 'bg-primary',
+    border: 'border-primary/50',
+    text: 'text-foreground',
+    iconBg: 'bg-primary',
+    iconText: 'text-primary-foreground'
   },
   process: {
-    bg: 'bg-green-500',
-    border: 'border-green-400',
-    text: 'text-green-900'
+    bg: 'bg-accent',
+    border: 'border-accent/50', 
+    text: 'text-foreground',
+    iconBg: 'bg-accent',
+    iconText: 'text-accent-foreground'
   },
   database: {
-    bg: 'bg-purple-500',
-    border: 'border-purple-400',
-    text: 'text-purple-900'
+    bg: 'bg-primary',
+    border: 'border-primary/50',
+    text: 'text-foreground',
+    iconBg: 'bg-primary',
+    iconText: 'text-primary-foreground'
   },
   api: {
-    bg: 'bg-yellow-500',
-    border: 'border-yellow-400',
-    text: 'text-yellow-900'
+    bg: 'bg-secondary',
+    border: 'border-border',
+    text: 'text-foreground',
+    iconBg: 'bg-muted',
+    iconText: 'text-muted-foreground'
   },
   decision: {
-    bg: 'bg-red-500',
-    border: 'border-red-400',
-    text: 'text-red-900'
+    bg: 'bg-destructive',
+    border: 'border-destructive/50',
+    text: 'text-foreground',
+    iconBg: 'bg-destructive',
+    iconText: 'text-destructive-foreground'
   }
 }
 
@@ -70,31 +88,32 @@ export default function CustomNode({ data, isConnectable }: CustomNodeProps) {
 
   return (
     <div className={`
-      relative px-4 py-3 shadow-lg rounded-lg border-2 
-      bg-white ${colors.border}
+      relative px-4 py-3 shadow-lg rounded-xl border-2 
+      bg-card/80 backdrop-blur-sm ${colors.border}
       min-w-[180px] max-w-[220px]
-      hover:shadow-xl transition-all duration-300
+      hover:shadow-xl hover:scale-105 transition-all duration-300
+      hover:bg-card/90 group
     `}>
       <Handle
         type="target"
         position={Position.Top}
         isConnectable={isConnectable}
-        className="w-3 h-3 !bg-gray-400 !border-2 !border-white"
+        className="w-3 h-3 !bg-muted-foreground !border-2 !border-background shadow-sm"
       />
       
-      <div className="flex flex-col items-center text-center space-y-2">
+      <div className="flex flex-col items-center text-center space-y-3">
         <div className={`
-          w-10 h-10 rounded-lg flex items-center justify-center
-          ${colors.bg}
+          w-12 h-12 rounded-xl flex items-center justify-center
+          ${colors.iconBg} shadow-lg group-hover:scale-110 transition-transform duration-300
         `}>
-          <IconComponent className="w-5 h-5 text-white" />
+          <IconComponent className={`w-6 h-6 ${colors.iconText}`} />
         </div>
         
         <div>
-          <h3 className="font-bold text-sm text-gray-900 leading-tight">
+          <h3 className="font-bold text-sm text-foreground leading-tight mb-1">
             {data.label}
           </h3>
-          <p className="text-xs text-gray-600 mt-1 leading-tight">
+          <p className="text-xs text-muted-foreground leading-tight">
             {data.description}
           </p>
         </div>
@@ -104,7 +123,7 @@ export default function CustomNode({ data, isConnectable }: CustomNodeProps) {
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="w-3 h-3 !bg-gray-400 !border-2 !border-white"
+        className="w-3 h-3 !bg-muted-foreground !border-2 !border-background shadow-sm"
       />
     </div>
   )

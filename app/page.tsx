@@ -16,8 +16,8 @@ import {
   NavbarButton 
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
-import { RAGFlowchart } from "@/components/ui/rag-flowchart"
-import { BusinessFlowchart } from "@/components/ui/business-flowchart"
+import BusinessFlowDiagram from "@/components/ui/businessflow"
+import ScrapingRagDiagram from "@/components/ui/scrapragflow"
 import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle } from "lucide-react"
 import Link from "next/link"
 
@@ -28,10 +28,10 @@ export default function ThikanaAILanding() {
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (searchQuery.trim()) {
-      // Redirect to chat page with search query as URL parameter
+      // Redirect to search page with search query as URL parameter
       const trimmedQuery = searchQuery.trim()
       console.log('Searching for:', trimmedQuery)
-      window.location.href = `/chat?q=${encodeURIComponent(trimmedQuery)}`
+      window.location.href = `/search?q=${encodeURIComponent(trimmedQuery)}`
     }
   }
 
@@ -75,8 +75,8 @@ export default function ThikanaAILanding() {
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
             <AnimatedThemeToggler />
-            <NavbarButton href="/login" variant="secondary">
-              Login
+            <NavbarButton href="/search" variant="secondary">
+              Search
             </NavbarButton>
             <NavbarButton href="/business-register" variant="primary">
               Register Business
@@ -350,12 +350,28 @@ export default function ThikanaAILanding() {
           <div className="space-y-20">
             {/* RAG Query Flowchart */}
             <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
-              <RAGFlowchart />
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold mb-3">AI Content Processing & RAG Chat System</h3>
+                <p className="text-muted-foreground">
+                  Real-time web scraping, content vectorization, and intelligent query processing for business intelligence insights.
+                </p>
+              </div>
+              <div className="h-[800px]">
+                <ScrapingRagDiagram />
+              </div>
             </div>
 
             {/* Business Registration Flowchart */}
             <div className="bg-card/50 border border-border rounded-2xl p-8 shadow-lg">
-              <BusinessFlowchart />
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold mb-3">Business Registration & Discovery Process</h3>
+                <p className="text-muted-foreground">
+                  Complete flow from business registration to customer discovery through location-based search and AI-powered matching.
+                </p>
+              </div>
+              <div className="h-[800px]">
+                <BusinessFlowDiagram/>
+              </div>
             </div>
           </div>
         </div>

@@ -113,14 +113,14 @@ export default function BusinessRegisterPage() {
           <NavItems items={[
             { name: "Home", link: "/" },
             { name: "Chat", link: "/chat" },
-            { name: "Login", link: "/login" }
+            { name: "Search", link: "/search" }
           ]} />
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
             <AnimatedThemeToggler />
-            <NavbarButton href="/login" variant="primary">
-              Login
+            <NavbarButton href="/search" variant="primary">
+              Search
             </NavbarButton>
           </div>
         </NavBody>
@@ -149,12 +149,12 @@ export default function BusinessRegisterPage() {
               <Link href="/chat" className="text-sm font-medium hover:text-primary transition-colors">
                 Chat
               </Link>
-              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
-                Login
+              <Link href="/search" className="text-sm font-medium hover:text-primary transition-colors">
+                Search
               </Link>
               <div className="border-t border-border my-4"></div>
-              <NavbarButton href="/login" variant="primary">
-                Login
+              <NavbarButton href="/search" variant="primary">
+                Search
               </NavbarButton>
             </div>
           </MobileNavMenu>
@@ -336,12 +336,12 @@ export default function BusinessRegisterPage() {
             </Button>
           </form>
 
-          {/* Login Link */}
+          {/* Search Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
-                Sign in here
+              Want to find businesses?{' '}
+              <Link href="/search" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Search here
               </Link>
             </p>
           </div>
