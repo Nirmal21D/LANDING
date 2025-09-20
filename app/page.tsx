@@ -19,7 +19,7 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import BusinessFlowDiagram from "@/components/ui/businessflow"
 import ScrapingRagDiagram from "@/components/ui/scrapragflow"
 import { Footer } from "@/components/ui/footer"
-import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle } from "lucide-react"
+import { MapPin, MessageCircle, Users, Zap, ArrowRight, Sparkles, Globe, Code, Search, Triangle, Compass, Coffee, Shield, ShoppingBag, HelpCircle, Target, DollarSign, Building2, MessageSquare } from "lucide-react"
 import Link from "next/link"
 
 export default function ThikanaAILanding() {
@@ -243,29 +243,113 @@ export default function ThikanaAILanding() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-24 border-t border-border">
+      {/* Enhanced Stats Section */}
+      <section className="py-24 border-t border-border bg-gradient-to-b from-background to-secondary/20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-16">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-foreground mb-2">10k+</div>
-              <div className="text-muted-foreground">businesses discovered</div>
-              <div className="text-2xl font-bold text-foreground mt-4">LOCAL EATS</div>
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-medium mb-6 border border-primary/30">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Platform Impact
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-foreground mb-2">98%</div>
-              <div className="text-muted-foreground">accuracy rate</div>
-              <div className="text-2xl font-bold text-foreground mt-4">QUICKFIND</div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Trusted by thousands of <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">local businesses</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              See the real impact of AI-powered local discovery on businesses and customers
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid md:grid-cols-4 gap-8">
+            {/* Stat 1 */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <MapPin className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-3">
+                  10k+
+                </div>
+                <div className="text-muted-foreground text-sm mb-4">businesses discovered</div>
+                <div className="text-lg font-bold text-foreground tracking-wider">
+                  LOCAL EATS
+                </div>
+                <div className="mt-4 h-1 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-foreground mb-2">5x</div>
-              <div className="text-muted-foreground">faster discovery</div>
-              <div className="text-2xl font-bold text-foreground mt-4">NEIGHBORHOOD</div>
+
+            {/* Stat 2 */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent mb-3">
+                  98%
+                </div>
+                <div className="text-muted-foreground text-sm mb-4">accuracy rate</div>
+                <div className="text-lg font-bold text-foreground tracking-wider">
+                  QUICKFIND
+                </div>
+                <div className="mt-4 h-1 bg-gradient-to-r from-accent to-primary rounded-full"></div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-foreground mb-2">24/7</div>
-              <div className="text-muted-foreground">AI availability</div>
-              <div className="text-2xl font-bold text-foreground mt-4">ALWAYS ON</div>
+
+            {/* Stat 3 */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-3">
+                  5x
+                </div>
+                <div className="text-muted-foreground text-sm mb-4">faster discovery</div>
+                <div className="text-lg font-bold text-foreground tracking-wider">
+                  NEIGHBORHOOD
+                </div>
+                <div className="mt-4 h-1 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Stat 4 */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <MessageCircle className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent mb-3">
+                  24/7
+                </div>
+                <div className="text-muted-foreground text-sm mb-4">AI availability</div>
+                <div className="text-lg font-bold text-foreground tracking-wider">
+                  ALWAYS ON
+                </div>
+                <div className="mt-4 h-1 bg-gradient-to-r from-accent to-primary rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Context */}
+          <div className="mt-16 text-center">
+            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary mb-2">Real-Time</div>
+                <p className="text-sm text-muted-foreground">Live business data updates every minute</p>
+              </div>
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                <div className="text-2xl font-bold text-accent mb-2">AI-Powered</div>
+                <p className="text-sm text-muted-foreground">Machine learning recommendations</p>
+              </div>
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary mb-2">Location-First</div>
+                <p className="text-sm text-muted-foreground">Hyper-local business discovery</p>
+              </div>
             </div>
           </div>
         </div>
@@ -383,13 +467,58 @@ export default function ThikanaAILanding() {
       {/* Customer CTA Section */}
       <section className="py-24 bg-secondary/50">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-8">Discover What's Nearby</h2>
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-medium mb-6 border border-primary/30">
+            <Compass className="w-4 h-4 mr-2" />
+            AI-Powered Discovery
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-8">
+            Discover What's <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Nearby</span>
+          </h2>
           <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto text-pretty leading-relaxed">
             From the best coffee shops to emergency services, get instant AI-powered recommendations for everything
             around you.
           </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-4xl mx-auto">
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Coffee className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Restaurants & Cafes</h3>
+                <p className="text-muted-foreground text-sm">Find the perfect spot for any craving</p>
+                <div className="mt-4 h-1 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+              </div>
+            </div>
+            
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-primary/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">Emergency Services</h3>
+                <p className="text-muted-foreground text-sm">Quick access to essential services</p>
+                <div className="mt-4 h-1 bg-gradient-to-r from-accent to-primary rounded-full"></div>
+              </div>
+            </div>
+            
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl transform group-hover:scale-105 transition-transform duration-300"></div>
+              <div className="relative bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 text-center hover:shadow-xl transition-all duration-300">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <ShoppingBag className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Shopping & Services</h3>
+                <p className="text-muted-foreground text-sm">Everything you need, right nearby</p>
+                <div className="mt-4 h-1 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+              </div>
+            </div>
+          </div>
+          
           <Button size="lg" className="gradient-secondary text-white px-8 py-4 text-lg font-semibold">
-            <a href="/chat" className="flex items-center">
+            <a href="/search" className="flex items-center">
               Start Chatting
               <MessageCircle className="w-5 h-5 ml-2" />
             </a>
@@ -398,60 +527,91 @@ export default function ThikanaAILanding() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-24 bg-secondary/50">
+      <section id="faq" className="py-24 bg-gradient-to-b from-background to-secondary/20">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Frequently Asked Questions</h2>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-medium mb-6 border border-primary/30">
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Got Questions?
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Frequently Asked <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Questions</span>
+            </h2>
             <p className="text-xl text-muted-foreground">Everything you need to know about Thikana AI</p>
           </div>
-          <Accordion type="single" collapsible className="space-y-4">
-            <AccordionItem value="item-1" className="bg-card rounded-xl px-6 py-2 shadow-sm border-0">
-              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                How accurate are the AI recommendations?
+          <Accordion type="single" collapsible className="space-y-6">
+            <AccordionItem value="item-1" className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  How accurate are the AI recommendations?
+                </div>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pt-4 leading-relaxed">
+              <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
                 Our AI uses real-time data from verified business listings, customer reviews, and local insights to
                 provide highly accurate recommendations. We continuously update our database to ensure information stays
                 current and reliable.
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="item-2" className="bg-card rounded-xl px-6 py-2 shadow-sm border-0">
-              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                Is Thikana AI free to use?
+            <AccordionItem value="item-2" className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/80 rounded-2xl flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  Is Thikana AI free to use?
+                </div>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pt-4 leading-relaxed">
+              <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
                 Yes! Thikana AI is completely free for customers to discover and get recommendations about local
                 businesses. Business registration also starts with a free tier with premium features available.
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="item-3" className="bg-card rounded-xl px-6 py-2 shadow-sm border-0">
-              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                How do I register my business?
+            <AccordionItem value="item-3" className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-white" />
+                  </div>
+                  How do I register my business?
+                </div>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pt-4 leading-relaxed">
+              <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
                 Simply click "Register Business" and follow our quick 5-minute setup process. You'll need basic business
                 information, photos, and operating hours. Our team will verify and activate your listing within 24
                 hours.
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="item-4" className="bg-card rounded-xl px-6 py-2 shadow-sm border-0">
-              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                What types of questions can I ask?
+            <AccordionItem value="item-4" className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  What types of questions can I ask?
+                </div>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pt-4 leading-relaxed">
+              <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
                 Ask anything about local businesses! "Best pizza near me", "Dentist open on weekends", "Kid-friendly
                 restaurants with parking" - our AI understands natural language and provides contextual answers.
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="item-5" className="bg-card rounded-xl px-6 py-2 shadow-sm border-0">
-              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                Which cities are supported?
+            <AccordionItem value="item-5" className="bg-card/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-white" />
+                  </div>
+                  Which cities are supported?
+                </div>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pt-4 leading-relaxed">
+              <AccordionContent className="text-muted-foreground pt-4 pl-13 leading-relaxed">
                 We're currently available in major cities across North America and expanding rapidly. Check our coverage
                 map or try searching - if we're in your area, you'll get results instantly!
               </AccordionContent>
