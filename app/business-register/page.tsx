@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { User, Building2, MapPin, Tag, Navigation, Sparkles, ArrowRight, HelpCircle, Triangle } from "lucide-react"
+import { User, Building2, MapPin, Tag, Navigation, Sparkles, ArrowRight, HelpCircle, Triangle, Wand2 } from "lucide-react"
 import Link from "next/link"
 import { 
   Navbar, 
@@ -25,12 +25,14 @@ export default function BusinessRegisterPage() {
   const [formData, setFormData] = useState({
     businessOwnerName: '',
     businessName: '',
+    businessDescription: '',
     latitude: '',
     longitude: '',
     businessCategory: '',
     businessTags: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -55,6 +57,7 @@ export default function BusinessRegisterPage() {
     setTimeout(() => {
       console.log('Business registration:', formData)
       setIsLoading(false)
+      alert('Business registered successfully! Generated tags: ' + formData.businessTags)
       // Add your registration logic here
     }, 2000)
   }
@@ -94,6 +97,43 @@ export default function BusinessRegisterPage() {
       )
     } else {
       alert("Geolocation is not supported by this browser.")
+    }
+  }
+
+  const generateTags = async () => {
+    if (!formData.businessName || !formData.businessDescription) {
+      alert("Please fill in business name and description first")
+      return
+    }
+
+    setIsGeneratingTags(true)
+    try {
+      const response = await fetch('/api/generate-tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          businessDescription: formData.businessDescription,
+          businessCategory: formData.businessCategory
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate tags')
+      }
+
+      const data = await response.json()
+      setFormData({
+        ...formData,
+        businessTags: data.tags.join(', ')
+      })
+    } catch (error) {
+      console.error('Error generating tags:', error)
+      alert('Failed to generate tags. Please try again.')
+    } finally {
+      setIsGeneratingTags(false)
     }
   }
 
@@ -216,6 +256,27 @@ export default function BusinessRegisterPage() {
               />
             </div>
 
+            {/* Business Description */}
+            <div className="space-y-2">
+              <Label htmlFor="businessDescription" className="text-sm font-medium flex items-center">
+                <Building2 className="w-4 h-4 mr-2 text-accent" />
+                Business Description *
+              </Label>
+              <Textarea
+                id="businessDescription"
+                name="businessDescription"
+                placeholder="Describe your business, services, atmosphere, and what makes it unique..."
+                value={formData.businessDescription}
+                onChange={handleInputChange}
+                className="bg-background border-border focus:ring-primary min-h-[100px]"
+                rows={4}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide a detailed description to help generate relevant tags automatically
+              </p>
+            </div>
+
             {/* Location Details Section */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -296,11 +357,33 @@ export default function BusinessRegisterPage() {
             </div>
 
             {/* Business Tags */}
-            <div className="space-y-2">
-              <Label htmlFor="businessTags" className="text-sm font-medium flex items-center">
-                <Tag className="w-4 h-4 mr-2 text-accent" />
-                Business Tags
-              </Label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="businessTags" className="text-sm font-medium flex items-center">
+                  <Tag className="w-4 h-4 mr-2 text-accent" />
+                  Business Tags
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateTags}
+                  disabled={isGeneratingTags || !formData.businessName || !formData.businessDescription}
+                  className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 hover:from-accent/20 hover:to-primary/20"
+                >
+                  {isGeneratingTags ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-accent mr-2"></div>
+                      Generating...
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <Wand2 className="w-3 h-3 mr-2" />
+                      Generate Tags
+                    </div>
+                  )}
+                </Button>
+              </div>
               <Textarea
                 id="businessTags"
                 name="businessTags"
@@ -311,14 +394,14 @@ export default function BusinessRegisterPage() {
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                Add relevant tags separated by commas to help customers find your business
+                Add relevant tags separated by commas to help customers find your business, or use the generate button to auto-create tags from your description
               </p>
             </div>
 
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={isLoading || !formData.businessOwnerName || !formData.businessName || !formData.latitude || !formData.longitude || !formData.businessCategory}
+              disabled={isLoading || !formData.businessOwnerName || !formData.businessName || !formData.businessDescription || !formData.latitude || !formData.longitude || !formData.businessCategory}
               className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white py-4 text-lg font-semibold"
             >
               {isLoading ? (
