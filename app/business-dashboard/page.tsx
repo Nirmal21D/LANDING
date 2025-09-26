@@ -106,6 +106,7 @@ export default function BusinessDashboard() {
   })
   const [isSubmittingPending, setIsSubmittingPending] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false)
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
 
@@ -374,13 +375,36 @@ export default function BusinessDashboard() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords
         setPendingFormData(prev => ({
           ...prev,
           latitude: latitude.toString(),
           longitude: longitude.toString()
         }))
+
+        // Try to fetch address using reverse geocoding
+        try {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          if (apiKey) {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`
+            )
+            const data = await response.json()
+            
+            if (data.results && data.results[0]) {
+              const address = data.results[0].formatted_address
+              setPendingFormData(prev => ({
+                ...prev,
+                address: address
+              }))
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching address:', error)
+          // Continue without address - not critical
+        }
+
         setIsGettingLocation(false)
       },
       (error) => {
@@ -405,6 +429,57 @@ export default function BusinessDashboard() {
         maximumAge: 60000
       }
     )
+  }
+
+  const generateTags = async () => {
+    setIsGeneratingTags(true)
+    
+    try {
+      // Validate required fields
+      if (!pendingFormData.businessName || !pendingFormData.businessCategory) {
+        alert('Please fill in business name and category first to generate tags.')
+        setIsGeneratingTags(false)
+        return
+      }
+
+      const response = await fetch('/api/generate-tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessName: pendingFormData.businessName,
+          businessDescription: pendingFormData.businessDescription || `A ${pendingFormData.businessCategory} business`,
+          businessCategory: pendingFormData.businessCategory
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate tags')
+      }
+
+      const data = await response.json()
+      
+      if (data.success && data.tags) {
+        // Convert array of tags to comma-separated string
+        const tagsString = Array.isArray(data.tags) 
+          ? data.tags.join(', ')
+          : data.tags
+        
+        setPendingFormData(prev => ({
+          ...prev,
+          businessTags: tagsString
+        }))
+      } else {
+        throw new Error(data.error || 'Failed to generate tags')
+      }
+
+    } catch (error) {
+      console.error('Error generating tags:', error)
+      alert('Failed to generate tags. Please try again or add tags manually.')
+    } finally {
+      setIsGeneratingTags(false)
+    }
   }
 
   const submitPendingData = async () => {
@@ -760,97 +835,145 @@ export default function BusinessDashboard() {
                     {/* Business Tags */}
                     <div className="space-y-2">
                       <Label htmlFor="businessTags">Business Tags</Label>
-                      <div className="relative">
-                        <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="businessTags"
-                          name="businessTags"
-                          type="text"
-                          placeholder="coffee, wifi, breakfast, organic"
-                          value={pendingFormData.businessTags}
-                          onChange={handleBusinessChange}
-                          className="pl-10 bg-background border-border"
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="businessTags"
+                            name="businessTags"
+                            type="text"
+                            placeholder="coffee, wifi, breakfast, organic"
+                            value={pendingFormData.businessTags}
+                            onChange={handleBusinessChange}
+                            className="pl-10 bg-background border-border"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateTags}
+                          disabled={isGeneratingTags || !pendingFormData.businessName || !pendingFormData.businessCategory}
+                          className="whitespace-nowrap px-3 h-10"
+                        >
+                          {isGeneratingTags ? 'Generating...' : 'Generate Tags'}
+                        </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Separate tags with commas (e.g., coffee, wifi, breakfast)
                       </p>
                     </div>
 
-                    {/* Business Address */}
-                    <div className="space-y-2">
-                      <Label>Business Address *</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          name="address"
-                          type="text"
-                          placeholder="123 Main Street, City, State, ZIP"
-                          value={pendingFormData.address}
-                          onChange={handleBusinessChange}
-                          className="pl-10 bg-background border-border"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Location Coordinates */}
+                    {/* Business Address & Interactive Location */}
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label>Location Coordinates *</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={getCurrentLocation}
-                          disabled={isGettingLocation}
-                          className="text-sm"
-                        >
-                          {isGettingLocation ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
-                              Getting Location...
-                            </>
-                          ) : (
-                            <>
-                              <Navigation className="w-3 h-3 mr-2" />
-                              Get My Location
-                            </>
-                          )}
-                        </Button>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-primary" />
+                        <Label className="text-base font-semibold">Business Location *</Label>
+                      </div>
+                      
+                      {/* Interactive Map */}
+                      <LocationMap
+                        latitude={pendingFormData.latitude ? parseFloat(pendingFormData.latitude) : null}
+                        longitude={pendingFormData.longitude ? parseFloat(pendingFormData.longitude) : null}
+                        address={pendingFormData.address}
+                        onLocationChange={(lat, lng) => {
+                          setPendingFormData(prev => ({
+                            ...prev,
+                            latitude: lat.toString(),
+                            longitude: lng.toString()
+                          }))
+                        }}
+                        onAddressChange={(address) => {
+                          setPendingFormData(prev => ({
+                            ...prev,
+                            address
+                          }))
+                        }}
+                        className="w-full"
+                      />
+                      
+                      {/* Address Input */}
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Business Address *</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="address"
+                            name="address"
+                            type="text"
+                            placeholder="123 Main Street, City, State, ZIP"
+                            value={pendingFormData.address}
+                            onChange={handleBusinessChange}
+                            className="pl-10 bg-background border-border"
+                            required
+                          />
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="latitude">Latitude *</Label>
-                          <Input
-                            id="latitude"
-                            name="latitude"
-                            type="number"
-                            step="any"
-                            placeholder="40.7128"
-                            value={pendingFormData.latitude}
-                            onChange={handleBusinessChange}
-                            className="bg-background border-border"
-                            required
-                          />
+                      {/* Location Coordinates */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Coordinates (Auto-updated from map)</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={getCurrentLocation}
+                            disabled={isGettingLocation}
+                            className="text-sm"
+                          >
+                            {isGettingLocation ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                                Getting Location...
+                              </>
+                            ) : (
+                              <>
+                                <Navigation className="w-3 h-3 mr-2" />
+                                Get My Location
+                              </>
+                            )}
+                          </Button>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="longitude">Longitude *</Label>
-                          <Input
-                            id="longitude"
-                            name="longitude"
-                            type="number"
-                            step="any"
-                            placeholder="-74.0060"
-                            value={pendingFormData.longitude}
-                            onChange={handleBusinessChange}
-                            className="bg-background border-border"
-                            required
-                          />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="latitude">Latitude *</Label>
+                            <Input
+                              id="latitude"
+                              name="latitude"
+                              type="number"
+                              step="any"
+                              placeholder="40.7128"
+                              value={pendingFormData.latitude}
+                              onChange={handleBusinessChange}
+                              className="bg-background border-border"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="longitude">Longitude *</Label>
+                            <Input
+                              id="longitude"
+                              name="longitude"
+                              type="number"
+                              step="any"
+                              placeholder="-74.0060"
+                              value={pendingFormData.longitude}
+                              onChange={handleBusinessChange}
+                              className="bg-background border-border"
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <p className="text-sm text-blue-800 dark:text-blue-200">
+                            <MapPin className="w-4 h-4 inline mr-2" />
+                            Use the interactive map above to set your exact business location. You can click on the map, drag the marker, or search for an address.
+                          </p>
                         </div>
                       </div>
-                    </div>
                   </div>
                   
                   {/* Business Hours Section */}
@@ -998,7 +1121,7 @@ export default function BusinessDashboard() {
                       </p>
                     </div>
                     <div className="flex justify-end gap-2">
-                      <Button
+                     {/*  <Button
                         onClick={async () => {
                           try {
                             const response = await fetch('/api/test-business')
@@ -1014,7 +1137,7 @@ export default function BusinessDashboard() {
                         className="gap-2"
                       >
                         Test API
-                      </Button>
+                      </Button> */}
                       <Button
                         onClick={submitPendingData}
                         disabled={isSubmittingPending || !pendingFormData.businessName || !pendingFormData.businessOwnerName || !pendingFormData.businessCategory || !pendingFormData.address || !pendingFormData.latitude || !pendingFormData.longitude}
@@ -1034,6 +1157,7 @@ export default function BusinessDashboard() {
                       </Button>
                     </div>
                   </div>
+                </div>
                 </div>
               </CardContent>
             </Card>
@@ -1359,6 +1483,92 @@ export default function BusinessDashboard() {
                       </div>
                     </div>
 
+                    {/* Location Update Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Business Location (Optional)</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Update your business location if it has changed or needs correction.
+                      </p>
+                      
+                      {/* Interactive Map */}
+                      <LocationMap
+                        latitude={pendingFormData.latitude ? parseFloat(pendingFormData.latitude) : null}
+                        longitude={pendingFormData.longitude ? parseFloat(pendingFormData.longitude) : null}
+                        address={pendingFormData.address}
+                        onLocationChange={(lat, lng) => {
+                          setPendingFormData(prev => ({
+                            ...prev,
+                            latitude: lat.toString(),
+                            longitude: lng.toString()
+                          }))
+                        }}
+                        onAddressChange={(address) => {
+                          setPendingFormData(prev => ({
+                            ...prev,
+                            address
+                          }))
+                        }}
+                        className="w-full"
+                      />
+                      
+                      {/* Address Input */}
+                      <div className="space-y-2">
+                        <Label htmlFor="update-address">Business Address</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="update-address"
+                            name="address"
+                            type="text"
+                            placeholder="123 Main Street, City, State, ZIP"
+                            value={pendingFormData.address}
+                            onChange={handleBusinessChange}
+                            className="pl-10 bg-background border-border"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Coordinates Display */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="update-latitude">Latitude</Label>
+                          <Input
+                            id="update-latitude"
+                            name="latitude"
+                            type="number"
+                            step="any"
+                            placeholder="40.7128"
+                            value={pendingFormData.latitude}
+                            onChange={handleBusinessChange}
+                            className="bg-background border-border"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="update-longitude">Longitude</Label>
+                          <Input
+                            id="update-longitude"
+                            name="longitude"
+                            type="number"
+                            step="any"
+                            placeholder="-74.0060"
+                            value={pendingFormData.longitude}
+                            onChange={handleBusinessChange}
+                            className="bg-background border-border"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          <MapPin className="w-4 h-4 inline mr-2" />
+                          Use the interactive map to update your business location. Changes will be reflected after submission.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Website Section */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -1445,7 +1655,7 @@ export default function BusinessDashboard() {
 
                     {/* Submit Button */}
                     <div className="flex justify-end pt-4 border-t border-border gap-2">
-                      <Button
+                      {/* <Button
                         onClick={async () => {
                           try {
                             const response = await fetch('/api/test-business')
@@ -1461,7 +1671,7 @@ export default function BusinessDashboard() {
                         className="gap-2"
                       >
                         Test API
-                      </Button>
+                      </Button> */}
                       <Button
                         onClick={submitPendingData}
                         disabled={isSubmittingPending || !pendingFormData.businessName || !pendingFormData.businessOwnerName || !pendingFormData.businessCategory || !pendingFormData.address || !pendingFormData.latitude || !pendingFormData.longitude}
