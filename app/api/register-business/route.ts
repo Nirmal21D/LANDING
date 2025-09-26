@@ -33,7 +33,11 @@ export async function POST(request: NextRequest) {
       phone,
       address,
       businessType,
-      clerkUserId  // This will be provided by the registration form
+      clerkUserId,  // This will be provided by the registration form
+      // Additional onboarding fields
+      businessHours,
+      website,
+      socialHandles
     } = body
     
     // Use clerkUserId from body if not authenticated, or use authenticated userId
@@ -107,7 +111,11 @@ export async function POST(request: NextRequest) {
       businessType: businessType || businessCategory,
       businessTags: businessTags ? businessTags.split(',').map((tag: string) => tag.trim()) : [],
       ownerId: finalUserId,
-      status: 'pending'
+      status: 'pending',
+      // Include onboarding data if provided
+      businessHours: businessHours || {},
+      website: website || '',
+      socialHandles: socialHandles || {}
     })
 
     const savedBusiness = await newBusiness.save()

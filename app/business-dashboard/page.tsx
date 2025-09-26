@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useUser, UserButton } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -47,12 +48,23 @@ import {
   Facebook,
   Twitter,
   Linkedin,
-  Plus
+  Plus,
+  Navigation,
+  Tag
 } from "lucide-react"
 import Link from "next/link"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
-import LocationMap from "@/components/ui/location-map"
-import BusinessMap from "@/components/ui/business-map"
+// Dynamic imports for map components to prevent SSR issues
+
+const LocationMap = dynamic(() => import('@/components/ui/location-map'), {
+  ssr: false,
+  loading: () => <div className="w-full h-[350px] bg-muted animate-pulse flex items-center justify-center">Loading map...</div>
+})
+
+const BusinessMap = dynamic(() => import('@/components/ui/business-map'), {
+  ssr: false,
+  loading: () => <div className="w-full h-[350px] bg-muted animate-pulse flex items-center justify-center">Loading map...</div>
+})
 
 export default function BusinessDashboard() {
   const { isLoaded, isSignedIn, user } = useUser()
@@ -63,6 +75,18 @@ export default function BusinessDashboard() {
   const [showPendingForm, setShowPendingForm] = useState(false)
   const [isBusinessCompleted, setIsBusinessCompleted] = useState(false)
   const [pendingFormData, setPendingFormData] = useState({
+    // Basic business information
+    businessName: '',
+    businessOwnerName: '',
+    businessDescription: '',
+    businessCategory: '',
+    businessTags: '',
+    phone: '',
+    address: '',
+    businessType: '',
+    latitude: '',
+    longitude: '',
+    // Operating information
     businessHours: {
       monday: { open: '', close: '', closed: false },
       tuesday: { open: '', close: '', closed: false },
@@ -81,6 +105,9 @@ export default function BusinessDashboard() {
     }
   })
   const [isSubmittingPending, setIsSubmittingPending] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -103,9 +130,21 @@ export default function BusinessDashboard() {
 
   // Pre-populate form data with existing business data
   useEffect(() => {
-    if (businessData && businessData.businessHours) {
+    if (businessData) {
       setPendingFormData(prev => ({
         ...prev,
+        // Basic business information
+        businessName: businessData.name || `${user?.firstName}'s Business`,
+        businessOwnerName: user ? `${user.firstName} ${user.lastName}` : 'Business Owner',
+        businessDescription: businessData.description || '',
+        businessCategory: businessData.category || '',
+        businessTags: Array.isArray(businessData.tags) ? businessData.tags.join(', ') : '',
+        phone: businessData.phone || '',
+        address: businessData.address || '',
+        businessType: businessData.businessType || businessData.category || '',
+        latitude: businessData.location?.latitude?.toString() || '',
+        longitude: businessData.location?.longitude?.toString() || '',
+        // Operating information  
         businessHours: businessData.businessHours || prev.businessHours,
         website: businessData.website || '',
         socialHandles: businessData.socialHandles || {
@@ -116,9 +155,10 @@ export default function BusinessDashboard() {
         }
       }))
     }
-  }, [businessData])
+  }, [businessData, user])
 
-  const fetchBusinessData = async () => {
+  // Define fetchBusinessData as a useCallback to avoid dependency issues
+  const fetchBusinessData = useCallback(async () => {
     try {
       // Fetch business data from your API
       const response = await fetch(`/api/business/${user?.id}`)
@@ -177,11 +217,11 @@ export default function BusinessDashboard() {
           throw new Error('No business found')
         }
       } else {
-        // Use mock data if no business found
+        // Use mock data if no business found - show onboarding form directly
         setBusinessData({
           name: `${user?.firstName}'s Business`,
           category: "Business",
-          address: "Please complete your business registration",
+          address: "Please complete your business profile",
           phone: "Add your phone number",
           email: user?.primaryEmailAddress?.emailAddress || "",
           description: "Complete your business profile to get started!",
@@ -191,16 +231,20 @@ export default function BusinessDashboard() {
           monthlyViews: 0,
           profileCompletion: 25,
           lastUpdated: new Date().toISOString(),
-          isRegistered: false
+          isRegistered: true, // Set to true so we show the dashboard with onboarding
+          needsOnboarding: true // Flag to show onboarding form
         })
+        // Force show the onboarding form for new users
+        setShowPendingForm(true)
+        setIsBusinessCompleted(false)
       }
     } catch (error) {
       console.error('Error fetching business data:', error)
-      // Use fallback data
+      // Use fallback data for new users - show onboarding form directly
       setBusinessData({
         name: `${user?.firstName}'s Business`,
-        category: "Business",
-        address: "Please complete your business registration",
+        category: "Business", 
+        address: "Please complete your business profile",
         phone: "Add your phone number",
         email: user?.primaryEmailAddress?.emailAddress || "",
         description: "Complete your business profile to get started!",
@@ -210,11 +254,29 @@ export default function BusinessDashboard() {
         monthlyViews: 0,
         profileCompletion: 25,
         lastUpdated: new Date().toISOString(),
-        isRegistered: false
+        isRegistered: true, // Set to true so we show the dashboard with onboarding
+        needsOnboarding: true // Flag to show onboarding form
       })
+      // Force show the onboarding form for new users
+      setShowPendingForm(true)
+      setIsBusinessCompleted(false)
     } finally {
       setLoading(false)
     }
+  }, [user])
+
+  // NOW SAFE TO HAVE CONDITIONAL RETURNS - ALL HOOKS HAVE BEEN CALLED
+
+  // Don't render anything until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleHoursChange = (day: string, field: string, value: string) => {
@@ -255,10 +317,94 @@ export default function BusinessDashboard() {
     }))
   }
 
+  // Helper functions for business information
+  const handleBusinessChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const getCurrentLocation = () => {
+    setIsGettingLocation(true)
+
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.')
+      setIsGettingLocation(false)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setPendingFormData(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }))
+        setIsGettingLocation(false)
+      },
+      (error) => {
+        let errorMessage = 'Unable to retrieve your location.'
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied by user.'
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.'
+            break
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.'
+            break
+        }
+        alert(errorMessage)
+        setIsGettingLocation(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    )
+  }
+
   const submitPendingData = async () => {
     setIsSubmittingPending(true)
     try {
-      // Client-side validation
+      // Client-side validation - Basic business information
+      if (!pendingFormData.businessName?.trim()) {
+        alert('Please provide your business name')
+        return
+      }
+      
+      if (!pendingFormData.businessOwnerName?.trim()) {
+        alert('Please provide the business owner name')
+        return
+      }
+      
+      if (!pendingFormData.businessCategory?.trim()) {
+        alert('Please select a business category')
+        return
+      }
+      
+      if (!pendingFormData.address?.trim()) {
+        alert('Please provide your business address')
+        return
+      }
+      
+      if (!pendingFormData.latitude || !pendingFormData.longitude) {
+        alert('Please provide your business location coordinates')
+        return
+      }
+      
+      // Operating information validation
       const hasBusinessHours = Object.values(pendingFormData.businessHours).some((day: any) => 
         day.closed || (day.open && day.close)
       )
@@ -280,13 +426,47 @@ export default function BusinessDashboard() {
       console.log('Submitting data:', pendingFormData)
       console.log('Validation passed:', { hasBusinessHours, hasWebsite, hasSocialHandles })
       
-      const response = await fetch(`/api/business/${user?.id}/complete`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pendingFormData),
-      })
+      let response
+      
+      // Check if this is a new user (needsOnboarding = true) or existing business
+      if (businessData && businessData.needsOnboarding) {
+        // For new users, create a complete business record using register-business API
+        const businessPayload = {
+          businessOwnerName: pendingFormData.businessOwnerName,
+          businessName: pendingFormData.businessName,
+          businessDescription: pendingFormData.businessDescription || "New business getting started",
+          latitude: pendingFormData.latitude,
+          longitude: pendingFormData.longitude,
+          businessCategory: pendingFormData.businessCategory,
+          businessTags: pendingFormData.businessTags,
+          email: user?.primaryEmailAddress?.emailAddress || '',
+          phone: pendingFormData.phone || "",
+          address: pendingFormData.address,
+          businessType: pendingFormData.businessType || pendingFormData.businessCategory,
+          clerkUserId: user?.id,
+          // Include the onboarding form data
+          businessHours: pendingFormData.businessHours,
+          website: pendingFormData.website,
+          socialHandles: pendingFormData.socialHandles
+        }
+        
+        response = await fetch('/api/register-business', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(businessPayload),
+        })
+      } else {
+        // For existing businesses, update with additional info
+        response = await fetch(`/api/business/${user?.id}/complete`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(pendingFormData),
+        })
+      }
 
       console.log('Response status:', response.status)
       const responseData = await response.json()
@@ -432,12 +612,214 @@ export default function BusinessDashboard() {
                   Complete Your Business Profile
                 </CardTitle>
                 <CardDescription className="text-orange-700 dark:text-orange-300 text-base mt-2">
-                  Please provide your business hours and at least one way for customers to find you online (website or social media) to access the full dashboard.
+                  Please provide your complete business information to get started with your professional dashboard.
                 </CardDescription>
               </CardHeader>
               
               <CardContent>
                 <div className="space-y-8">
+
+                  {/* Basic Business Information Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Business Information *</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Business Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="businessName">Business Name *</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="businessName"
+                            name="businessName"
+                            type="text"
+                            placeholder="Your business name"
+                            value={pendingFormData.businessName}
+                            onChange={handleBusinessChange}
+                            className="pl-10 bg-background border-border"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Business Owner Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="businessOwnerName">Business Owner Name *</Label>
+                        <Input
+                          id="businessOwnerName"
+                          name="businessOwnerName"
+                          type="text"
+                          placeholder="Owner's full name"
+                          value={pendingFormData.businessOwnerName}
+                          onChange={handleBusinessChange}
+                          className="bg-background border-border"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Business Description */}
+                    <div className="space-y-2">
+                      <Label htmlFor="businessDescription">Business Description</Label>
+                      <Textarea
+                        id="businessDescription"
+                        name="businessDescription"
+                        placeholder="Describe your business..."
+                        value={pendingFormData.businessDescription}
+                        onChange={handleBusinessChange}
+                        className="bg-background border-border min-h-[100px]"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Business Category */}
+                      <div className="space-y-2">
+                        <Label htmlFor="businessCategory">Business Category *</Label>
+                        <Select onValueChange={(value) => handleSelectChange('businessCategory', value)}>
+                          <SelectTrigger className="bg-background border-border">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[
+                              'Food & Beverage',
+                              'Retail',
+                              'Healthcare',
+                              'Professional Services',
+                              'Technology',
+                              'Automotive',
+                              'Beauty & Wellness',
+                              'Education',
+                              'Entertainment',
+                              'Real Estate',
+                              'Construction',
+                              'Manufacturing',
+                              'Other'
+                            ].map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Phone Number */}
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="+1 (555) 123-4567"
+                            value={pendingFormData.phone}
+                            onChange={handleBusinessChange}
+                            className="pl-10 bg-background border-border"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Business Tags */}
+                    <div className="space-y-2">
+                      <Label htmlFor="businessTags">Business Tags</Label>
+                      <div className="relative">
+                        <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="businessTags"
+                          name="businessTags"
+                          type="text"
+                          placeholder="coffee, wifi, breakfast, organic"
+                          value={pendingFormData.businessTags}
+                          onChange={handleBusinessChange}
+                          className="pl-10 bg-background border-border"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Separate tags with commas (e.g., coffee, wifi, breakfast)
+                      </p>
+                    </div>
+
+                    {/* Business Address */}
+                    <div className="space-y-2">
+                      <Label>Business Address *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          name="address"
+                          type="text"
+                          placeholder="123 Main Street, City, State, ZIP"
+                          value={pendingFormData.address}
+                          onChange={handleBusinessChange}
+                          className="pl-10 bg-background border-border"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location Coordinates */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label>Location Coordinates *</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={getCurrentLocation}
+                          disabled={isGettingLocation}
+                          className="text-sm"
+                        >
+                          {isGettingLocation ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                              Getting Location...
+                            </>
+                          ) : (
+                            <>
+                              <Navigation className="w-3 h-3 mr-2" />
+                              Get My Location
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="latitude">Latitude *</Label>
+                          <Input
+                            id="latitude"
+                            name="latitude"
+                            type="number"
+                            step="any"
+                            placeholder="40.7128"
+                            value={pendingFormData.latitude}
+                            onChange={handleBusinessChange}
+                            className="bg-background border-border"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="longitude">Longitude *</Label>
+                          <Input
+                            id="longitude"
+                            name="longitude"
+                            type="number"
+                            step="any"
+                            placeholder="-74.0060"
+                            value={pendingFormData.longitude}
+                            onChange={handleBusinessChange}
+                            className="bg-background border-border"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
                   {/* Business Hours Section */}
                   <div className="space-y-4">
@@ -603,7 +985,7 @@ export default function BusinessDashboard() {
                       </Button>
                       <Button
                         onClick={submitPendingData}
-                        disabled={isSubmittingPending}
+                        disabled={isSubmittingPending || !pendingFormData.businessName || !pendingFormData.businessOwnerName || !pendingFormData.businessCategory || !pendingFormData.address || !pendingFormData.latitude || !pendingFormData.longitude}
                         className="gap-2 px-8"
                       >
                         {isSubmittingPending ? (
@@ -1050,7 +1432,7 @@ export default function BusinessDashboard() {
                       </Button>
                       <Button
                         onClick={submitPendingData}
-                        disabled={isSubmittingPending}
+                        disabled={isSubmittingPending || !pendingFormData.businessName || !pendingFormData.businessOwnerName || !pendingFormData.businessCategory || !pendingFormData.address || !pendingFormData.latitude || !pendingFormData.longitude}
                         className="gap-2"
                       >
                         {isSubmittingPending ? (
