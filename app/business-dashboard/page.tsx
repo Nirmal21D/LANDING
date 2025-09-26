@@ -1,11 +1,16 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useUser, UserButton } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   Building2, 
   Eye, 
@@ -37,7 +42,16 @@ import {
   ShoppingBag,
   Utensils,
   Zap,
-  MessageCircle
+  MessageCircle,
+  Upload,
+  Globe,
+  Instagram,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Youtube,
+  Plus,
+  X
 } from "lucide-react"
 import Link from "next/link"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
@@ -45,15 +59,280 @@ import LocationMap from "@/components/ui/location-map"
 import BusinessMap from "@/components/ui/business-map"
 
 export default function BusinessDashboard() {
-  const [businessInfo] = useState({
-    name: "Starbucks Coffee",
-    category: "Restaurant",
-    address: "123 Main Street, New York, NY 10001",
-    phone: "+1 (555) 123-4567",
-    email: "contact@starbucks-ny.com",
-    rating: 4.6,
-    status: "approved"
+  const { isLoaded, isSignedIn, user } = useUser()
+  const router = useRouter()
+  const [businessData, setBusinessData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [showPendingForm, setShowPendingForm] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState({
+    businessHours: {
+      monday: { open: '', close: '', closed: false },
+      tuesday: { open: '', close: '', closed: false },
+      wednesday: { open: '', close: '', closed: false },
+      thursday: { open: '', close: '', closed: false },
+      friday: { open: '', close: '', closed: false },
+      saturday: { open: '', close: '', closed: false },
+      sunday: { open: '', close: '', closed: false }
+    },
+    website: '',
+    socialHandles: {
+      facebook: '',
+      instagram: '',
+      twitter: '',
+      linkedin: '',
+      youtube: ''
+    },
+    images: [] as string[]
   })
+  const [isSubmittingPending, setIsSubmittingPending] = useState(false)
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/login')
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  // Fetch business data when user is loaded
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      fetchBusinessData()
+    }
+  }, [isLoaded, isSignedIn, user])
+
+  const fetchBusinessData = async () => {
+    try {
+      // Fetch business data from your API
+      const response = await fetch(`/api/business/${user?.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.business) {
+          // Map business data to expected format
+          const business = data.business
+          setBusinessData({
+            name: business.businessName,
+            ownerName: business.businessOwnerName,
+            category: business.businessCategory,
+            description: business.businessDescription || "No description provided",
+            address: business.address,
+            phone: business.phone || "Not provided",
+            email: business.email,
+            tags: business.businessTags || [],
+            location: business.location,
+            status: business.status,
+            businessType: business.businessType || "Not specified",
+            isActive: business.isActive,
+            createdAt: business.createdAt,
+            updatedAt: business.updatedAt,
+            businessHours: business.businessHours || null,
+            website: business.website || null,
+            socialHandles: business.socialHandles || {},
+            businessImages: business.businessImages || [],
+            // Default values for metrics (these would come from analytics API later)
+            rating: null,
+            totalReviews: null,
+            monthlyViews: null,
+            profileCompletion: null,
+            lastUpdated: business.updatedAt
+          })
+        } else {
+          throw new Error('No business found')
+        }
+      } else {
+        // Use mock data if no business found
+        setBusinessData({
+          name: `${user?.firstName}'s Business`,
+          category: "Business",
+          address: "Please complete your business registration",
+          phone: "Add your phone number",
+          email: user?.primaryEmailAddress?.emailAddress || "",
+          description: "Complete your business profile to get started!",
+          status: "pending",
+          rating: 0,
+          totalReviews: 0,
+          monthlyViews: 0,
+          profileCompletion: 25,
+          lastUpdated: new Date().toISOString(),
+          isRegistered: false
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching business data:', error)
+      // Use fallback data
+      setBusinessData({
+        name: `${user?.firstName}'s Business`,
+        category: "Business",
+        address: "Please complete your business registration",
+        phone: "Add your phone number",
+        email: user?.primaryEmailAddress?.emailAddress || "",
+        description: "Complete your business profile to get started!",
+        status: "pending",
+        rating: 0,
+        totalReviews: 0,
+        monthlyViews: 0,
+        profileCompletion: 25,
+        lastUpdated: new Date().toISOString(),
+        isRegistered: false
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleHoursChange = (day: string, field: string, value: string) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      businessHours: {
+        ...prev.businessHours,
+        [day]: {
+          ...prev.businessHours[day as keyof typeof prev.businessHours],
+          [field]: value
+        }
+      }
+    }))
+  }
+
+  const toggleDayClosed = (day: string) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      businessHours: {
+        ...prev.businessHours,
+        [day]: {
+          ...prev.businessHours[day as keyof typeof prev.businessHours],
+          closed: !prev.businessHours[day as keyof typeof prev.businessHours].closed,
+          open: '',
+          close: ''
+        }
+      }
+    }))
+  }
+
+  const handleSocialChange = (platform: string, value: string) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      socialHandles: {
+        ...prev.socialHandles,
+        [platform]: value
+      }
+    }))
+  }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (files) {
+      // In a real app, you'd upload to a service like Cloudinary or AWS S3
+      // For now, we'll just show placeholders
+      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
+      setPendingFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }))
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setPendingFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }))
+  }
+
+  const submitPendingData = async () => {
+    setIsSubmittingPending(true)
+    try {
+      const response = await fetch(`/api/business/${user?.id}/complete`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pendingFormData),
+      })
+
+      if (response.ok) {
+        // Refresh business data
+        await fetchBusinessData()
+        setShowPendingForm(false)
+      } else {
+        throw new Error('Failed to update business information')
+      }
+    } catch (error) {
+      console.error('Error updating business:', error)
+    } finally {
+      setIsSubmittingPending(false)
+    }
+  }
+
+  // Show loading state
+  if (!isLoaded || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show sign-in prompt if not authenticated
+  if (!isSignedIn) {
+    return null // Will redirect in useEffect
+  }
+
+  // Show business registration prompt if no business found
+  if (!loading && businessData && businessData.isRegistered === false) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl border-border/50 shadow-lg">
+          <CardHeader className="text-center pb-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-primary/10 rounded-full">
+                <Building2 className="w-12 h-12 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Complete Your Business Registration</CardTitle>
+            <CardDescription className="text-base mt-2">
+              To access your business dashboard, you need to complete your business registration first.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="p-6 bg-muted/30 rounded-lg border border-border/30">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Add your business information
+                </div>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Set your location and contact details
+                </div>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Start managing your business presence
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 justify-center">
+              <Link href="/business-register?step=business">
+                <Button className="gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Register My Business
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline">
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const businessInfo = businessData || {}
 
   const stats = [
     {
@@ -278,12 +557,15 @@ export default function BusinessDashboard() {
           <div className="flex items-center gap-3">
             <AnimatedThemeToggler />
             
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LogOut className="w-4 h-4" />
-                Logout
-              </Button>
-            </Link>
+            <UserButton 
+              appearance={{
+                elements: {
+                  avatarBox: 'w-8 h-8',
+                  userButtonPopoverCard: 'border-border bg-card',
+                  userButtonPopoverActions: 'text-foreground'
+                }
+              }}
+            />
           </div>
         </div>
       </div>
@@ -291,6 +573,253 @@ export default function BusinessDashboard() {
       {/* Main Content */}
       <div className="w-full px-6 py-8">
         <div className="space-y-8">
+          
+          {/* Pending Business Completion Form */}
+          {businessInfo.status === 'pending' && (
+            <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                      <Clock className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-orange-800 dark:text-orange-200">Complete Your Business Profile</CardTitle>
+                      <CardDescription className="text-orange-700 dark:text-orange-300">
+                        Add additional information to get your business approved faster
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowPendingForm(!showPendingForm)}
+                    variant="outline"
+                    className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
+                  >
+                    {showPendingForm ? 'Hide Form' : 'Complete Profile'}
+                  </Button>
+                </div>
+              </CardHeader>
+              
+              {showPendingForm && (
+                <CardContent className="pt-0">
+                  <div className="space-y-8">
+                    
+                    {/* Business Hours Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Business Hours</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {Object.entries(pendingFormData.businessHours).map(([day, hours]) => (
+                          <div key={day} className="flex items-center gap-4 p-3 bg-background rounded-lg border border-border/50">
+                            <div className="w-24">
+                              <p className="font-medium capitalize text-sm">{day}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`${day}-closed`}
+                                checked={hours.closed}
+                                onChange={() => toggleDayClosed(day)}
+                                className="rounded"
+                              />
+                              <Label htmlFor={`${day}-closed`} className="text-sm">Closed</Label>
+                            </div>
+                            {!hours.closed && (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="time"
+                                  value={hours.open}
+                                  onChange={(e) => handleHoursChange(day, 'open', e.target.value)}
+                                  className="w-32"
+                                />
+                                <span className="text-muted-foreground">to</span>
+                                <Input
+                                  type="time"
+                                  value={hours.close}
+                                  onChange={(e) => handleHoursChange(day, 'close', e.target.value)}
+                                  className="w-32"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Images Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Camera className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Business Images</h3>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <label htmlFor="image-upload" className="cursor-pointer">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+                              <Upload className="w-4 h-4" />
+                              Upload Images
+                            </div>
+                            <input
+                              id="image-upload"
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="text-sm text-muted-foreground">Add photos of your business (max 10)</p>
+                        </div>
+                        
+                        {pendingFormData.images.length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {pendingFormData.images.map((image, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={image}
+                                  alt={`Business image ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-border"
+                                />
+                                <Button
+                                  onClick={() => removeImage(index)}
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2 w-6 h-6 p-0"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Website Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Website (Optional)</h3>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="website">Website URL</Label>
+                        <Input
+                          id="website"
+                          type="url"
+                          placeholder="https://www.yourwebsite.com"
+                          value={pendingFormData.website}
+                          onChange={(e) => setPendingFormData(prev => ({ ...prev, website: e.target.value }))}
+                          className="max-w-md"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Social Media Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Social Media (Optional)</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="facebook" className="flex items-center gap-2">
+                            <Facebook className="w-4 h-4 text-blue-600" />
+                            Facebook
+                          </Label>
+                          <Input
+                            id="facebook"
+                            type="url"
+                            placeholder="https://facebook.com/yourpage"
+                            value={pendingFormData.socialHandles.facebook}
+                            onChange={(e) => handleSocialChange('facebook', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="instagram" className="flex items-center gap-2">
+                            <Instagram className="w-4 h-4 text-pink-600" />
+                            Instagram
+                          </Label>
+                          <Input
+                            id="instagram"
+                            type="url"
+                            placeholder="https://instagram.com/yourpage"
+                            value={pendingFormData.socialHandles.instagram}
+                            onChange={(e) => handleSocialChange('instagram', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="twitter" className="flex items-center gap-2">
+                            <Twitter className="w-4 h-4 text-blue-400" />
+                            Twitter
+                          </Label>
+                          <Input
+                            id="twitter"
+                            type="url"
+                            placeholder="https://twitter.com/yourpage"
+                            value={pendingFormData.socialHandles.twitter}
+                            onChange={(e) => handleSocialChange('twitter', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="linkedin" className="flex items-center gap-2">
+                            <Linkedin className="w-4 h-4 text-blue-700" />
+                            LinkedIn
+                          </Label>
+                          <Input
+                            id="linkedin"
+                            type="url"
+                            placeholder="https://linkedin.com/company/yourpage"
+                            value={pendingFormData.socialHandles.linkedin}
+                            onChange={(e) => handleSocialChange('linkedin', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="youtube" className="flex items-center gap-2">
+                            <Youtube className="w-4 h-4 text-red-600" />
+                            YouTube
+                          </Label>
+                          <Input
+                            id="youtube"
+                            type="url"
+                            placeholder="https://youtube.com/yourchannel"
+                            value={pendingFormData.socialHandles.youtube}
+                            onChange={(e) => handleSocialChange('youtube', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="flex justify-end pt-4 border-t border-border">
+                      <Button
+                        onClick={submitPendingData}
+                        disabled={isSubmittingPending}
+                        className="gap-2"
+                      >
+                        {isSubmittingPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Building2 className="w-4 h-4" />
+                            Complete Profile
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
           
           {/* Welcome Section & Quick Stats */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -324,6 +853,11 @@ export default function BusinessDashboard() {
                           <div>
                             <p className="text-sm text-muted-foreground">Address</p>
                             <p className="text-sm font-medium leading-relaxed">{businessInfo.address}</p>
+                            {businessInfo.location && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {businessInfo.location.latitude?.toFixed(4)}, {businessInfo.location.longitude?.toFixed(4)}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -396,6 +930,142 @@ export default function BusinessDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Additional Business Information */}
+          {businessInfo.status === 'approved' && (businessInfo.businessHours || businessInfo.website || Object.values(businessInfo.socialHandles || {}).some(handle => handle)) && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Business Hours */}
+              {businessInfo.businessHours && (
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      Business Hours
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {Object.entries(businessInfo.businessHours).map(([day, hours]: [string, any]) => (
+                        <div key={day} className="flex items-center justify-between text-sm">
+                          <span className="capitalize font-medium">{day}</span>
+                          <span className="text-muted-foreground">
+                            {hours.closed ? 'Closed' : `${hours.open} - ${hours.close}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Website & Social Media */}
+              {(businessInfo.website || Object.values(businessInfo.socialHandles || {}).some(handle => handle)) && (
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-primary" />
+                      Online Presence
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {businessInfo.website && (
+                        <div>
+                          <p className="text-sm font-medium mb-1">Website</p>
+                          <a 
+                            href={businessInfo.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {businessInfo.website}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {Object.entries(businessInfo.socialHandles || {}).some(([_, url]) => url) && (
+                        <div>
+                          <p className="text-sm font-medium mb-2">Social Media</p>
+                          <div className="flex flex-wrap gap-2">
+                            {businessInfo.socialHandles?.facebook && (
+                              <a href={businessInfo.socialHandles.facebook} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <Facebook className="w-3 h-3" />
+                                  Facebook
+                                </Button>
+                              </a>
+                            )}
+                            {businessInfo.socialHandles?.instagram && (
+                              <a href={businessInfo.socialHandles.instagram} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <Instagram className="w-3 h-3" />
+                                  Instagram
+                                </Button>
+                              </a>
+                            )}
+                            {businessInfo.socialHandles?.twitter && (
+                              <a href={businessInfo.socialHandles.twitter} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <Twitter className="w-3 h-3" />
+                                  Twitter
+                                </Button>
+                              </a>
+                            )}
+                            {businessInfo.socialHandles?.linkedin && (
+                              <a href={businessInfo.socialHandles.linkedin} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <Linkedin className="w-3 h-3" />
+                                  LinkedIn
+                                </Button>
+                              </a>
+                            )}
+                            {businessInfo.socialHandles?.youtube && (
+                              <a href={businessInfo.socialHandles.youtube} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <Youtube className="w-3 h-3" />
+                                  YouTube
+                                </Button>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Business Images */}
+              {businessInfo.businessImages && businessInfo.businessImages.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-primary" />
+                      Business Images
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-2">
+                      {businessInfo.businessImages.slice(0, 4).map((image: string, index: number) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`Business image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-border"
+                        />
+                      ))}
+                    </div>
+                    {businessInfo.businessImages.length > 4 && (
+                      <p className="text-sm text-muted-foreground mt-2 text-center">
+                        +{businessInfo.businessImages.length - 4} more images
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Quick Actions */}
           <Card className="border-border/50">

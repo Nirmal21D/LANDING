@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import connectDB from '@/lib/mongodb'
+import { Business } from '@/lib/models/Business'
+import { User } from '@/lib/models/User'
 
 export async function POST(request: NextRequest) {
   console.log('🏢 === BUSINESS REGISTRATION API CALLED ===')
@@ -6,6 +10,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('📥 Received registration request:', JSON.stringify(body, null, 2))
+    
+    // Get authenticated user (optional for this endpoint as it's used during registration)
+    let userId = null
+    try {
+      const authData = await auth()
+      userId = authData.userId
+    } catch (error) {
+      console.log('No authenticated user found (this is normal during registration)')
+    }
     
     // Extract and validate fields from the request
     const { 
@@ -19,8 +32,12 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       address,
-      businessType
+      businessType,
+      clerkUserId  // This will be provided by the registration form
     } = body
+    
+    // Use clerkUserId from body if not authenticated, or use authenticated userId
+    const finalUserId = userId || clerkUserId
     
     console.log('📋 Parsed parameters:', {
       businessOwnerName,
@@ -70,6 +87,45 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Validation passed')
+
+    // Connect to MongoDB and create business record
+    await connectDB()
+    
+    // Create business record in MongoDB
+    const newBusiness = new Business({
+      businessOwnerName,
+      businessName,
+      businessDescription: businessDescription || '',
+      email,
+      phone: phone || '',
+      address: address || '',
+      location: {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude)
+      },
+      businessCategory,
+      businessType: businessType || businessCategory,
+      businessTags: businessTags ? businessTags.split(',').map((tag: string) => tag.trim()) : [],
+      ownerId: finalUserId,
+      status: 'pending'
+    })
+
+    const savedBusiness = await newBusiness.save()
+    console.log('✅ Business created in MongoDB:', savedBusiness._id)
+
+    // Update user's businessId reference if user exists
+    if (finalUserId) {
+      try {
+        await User.findOneAndUpdate(
+          { clerkUserId: finalUserId },
+          { businessId: savedBusiness._id },
+          { upsert: false }
+        )
+        console.log('✅ User business reference updated')
+      } catch (error) {
+        console.log('⚠️ Could not update user business reference:', error)
+      }
+    }
 
     // Transform the request to match the first API's expected format
     const firstApiRequest = {
@@ -187,7 +243,10 @@ export async function POST(request: NextRequest) {
 
     // Return combined response
     const combinedResponse = {
-      ok: hasFirstApiSuccess || hasSecondApiSuccess,
+      ok: true,
+      business: savedBusiness,
+      businessId: savedBusiness._id,
+      message: 'Business registered successfully',
       appendCsvResult: hasFirstApiSuccess ? {
         success: true,
         data: firstApiData
@@ -205,7 +264,7 @@ export async function POST(request: NextRequest) {
       // For backward compatibility, include first API data in root level
       ...(hasFirstApiSuccess ? firstApiData : {}),
       // Add business ID from second API if available
-      businessId: secondApiData?.businessId || null
+      externalBusinessId: secondApiData?.businessId || null
     }
 
     console.log('✅ Returning combined registration response')
