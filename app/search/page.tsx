@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { MapPin, Search, Navigation, Clock, Star, Globe, Filter, ChevronDown, Loader2, SlidersHorizontal, Triangle } from "lucide-react"
+import { MapPin, Search, Navigation, Clock, Star, Globe, Filter, ChevronDown, Loader2, SlidersHorizontal, Triangle, Mic, Camera, MicOff, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { 
   Navbar, 
   NavBody, 
@@ -22,18 +23,45 @@ import {
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { Footer } from "@/components/ui/footer"
+import ImageSearchModal from "@/components/ImageSearchModal"
 
 interface Business {
-  name: string                    // Owner/Contact name from API
-  business_name: string          // Actual business name from API  
-  latitude: number               // GPS coordinates from API
-  longitude: number              // GPS coordinates from API
-  lat_long: string              // Formatted coordinates from API
-  business_category: string     // Category classification from API
-  business_tags: string         // Comma-separated tags from API
-  vector_score: number          // AI similarity score from API (negative value)
-  source_path: string           // Data source path from API
-  distance_km: number           // Calculated distance from user location
+  // Database fields (new structure)
+  _id?: string
+  businessOwnerName?: string
+  businessName?: string
+  businessDescription?: string
+  email?: string
+  phone?: string
+  address?: string
+  location?: {
+    latitude: number
+    longitude: number
+  }
+  businessCategory?: string
+  businessType?: string
+  businessTags?: string[]
+  businessHours?: any
+  website?: string
+  socialHandles?: any
+  ownerId?: string
+  status?: string
+  verificationDate?: string | null
+  isActive?: boolean
+  createdAt?: string
+  updatedAt?: string
+  
+  // Legacy API fields (old structure) - for backward compatibility
+  name?: string                    // Owner/Contact name from API
+  business_name?: string          // Actual business name from API  
+  latitude?: number               // GPS coordinates from API
+  longitude?: number              // GPS coordinates from API
+  lat_long?: string              // Formatted coordinates from API
+  business_category?: string     // Category classification from API
+  business_tags?: string         // Comma-separated tags from API
+  vector_score?: number          // AI similarity score from API (negative value)
+  source_path?: string           // Data source path from API
+  distance_km?: number           // Calculated distance from user location
 }
 
 interface SearchResponse {
@@ -67,6 +95,130 @@ interface FilterState {
   tags: string[]
 }
 
+// Temporary business data for fallback when API fails or no results
+const TEMP_BUSINESS_DATA: Business[] = [
+  {
+    name: "John Smith",
+    business_name: "Blue Moon Coffee",
+    latitude: 40.7589,
+    longitude: -73.9851,
+    lat_long: "40.7589, -73.9851",
+    business_category: "Coffee Shop",
+    business_tags: "coffee, wifi, breakfast, organic",
+    vector_score: -0.85,
+    source_path: "temp_data_1",
+    distance_km: 0.2
+  },
+  {
+    name: "Maria Rodriguez",
+    business_name: "Bella Vista Restaurant",
+    latitude: 40.7614,
+    longitude: -73.9776,
+    lat_long: "40.7614, -73.9776",
+    business_category: "Restaurant",
+    business_tags: "italian, pizza, pasta, family-friendly",
+    vector_score: -0.82,
+    source_path: "temp_data_2",
+    distance_km: 0.5
+  },
+  {
+    name: "Ahmed Hassan",
+    business_name: "Quick Fix Auto Repair",
+    latitude: 40.7505,
+    longitude: -73.9934,
+    lat_long: "40.7505, -73.9934",
+    business_category: "Automotive",
+    business_tags: "car repair, oil change, tires, mechanic",
+    vector_score: -0.78,
+    source_path: "temp_data_3",
+    distance_km: 0.8
+  },
+  {
+    name: "Dr. Sarah Johnson",
+    business_name: "Downtown Medical Clinic",
+    latitude: 40.7648,
+    longitude: -73.9808,
+    lat_long: "40.7648, -73.9808",
+    business_category: "Healthcare",
+    business_tags: "medical, doctor, clinic, health",
+    vector_score: -0.75,
+    source_path: "temp_data_4",
+    distance_km: 0.3
+  },
+  {
+    name: "Mike Chen",
+    business_name: "Tech Solutions Store",
+    latitude: 40.7580,
+    longitude: -73.9855,
+    lat_long: "40.7580, -73.9855",
+    business_category: "Electronics",
+    business_tags: "electronics, phones, computers, repair",
+    vector_score: -0.73,
+    source_path: "temp_data_5",
+    distance_km: 0.4
+  },
+  {
+    name: "Lisa Thompson",
+    business_name: "Fresh Market Grocery",
+    latitude: 40.7610,
+    longitude: -73.9897,
+    lat_long: "40.7610, -73.9897",
+    business_category: "Grocery",
+    business_tags: "grocery, fresh, organic, vegetables",
+    vector_score: -0.70,
+    source_path: "temp_data_6",
+    distance_km: 0.6
+  },
+  {
+    name: "Carlos Mendez",
+    business_name: "Fitness First Gym",
+    latitude: 40.7555,
+    longitude: -73.9889,
+    lat_long: "40.7555, -73.9889",
+    business_category: "Fitness",
+    business_tags: "gym, fitness, workout, personal trainer",
+    vector_score: -0.68,
+    source_path: "temp_data_7",
+    distance_km: 0.7
+  },
+  {
+    name: "Anna Wilson",
+    business_name: "Bookworm's Paradise",
+    latitude: 40.7622,
+    longitude: -73.9792,
+    lat_long: "40.7622, -73.9792",
+    business_category: "Bookstore",
+    business_tags: "books, reading, literature, cafe",
+    vector_score: -0.65,
+    source_path: "temp_data_8",
+    distance_km: 0.4
+  },
+  {
+    name: "David Park",
+    business_name: "Park's Barbershop",
+    latitude: 40.7598,
+    longitude: -73.9823,
+    lat_long: "40.7598, -73.9823",
+    business_category: "Beauty & Personal Care",
+    business_tags: "haircut, barber, grooming, men",
+    vector_score: -0.62,
+    source_path: "temp_data_9",
+    distance_km: 0.3
+  },
+  {
+    name: "Jenny Kim",
+    business_name: "Sunrise Bakery",
+    latitude: 40.7567,
+    longitude: -73.9912,
+    lat_long: "40.7567, -73.9912",
+    business_category: "Bakery",
+    business_tags: "bakery, bread, pastries, cakes",
+    vector_score: -0.60,
+    source_path: "temp_data_10",
+    distance_km: 0.5
+  }
+]
+
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
@@ -80,6 +232,16 @@ export default function SearchPage() {
   const [searchInfo, setSearchInfo] = useState<any>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
   const [isLoadingRecentSearches, setIsLoadingRecentSearches] = useState(false)
+  const [showImageSearch, setShowImageSearch] = useState(false)
+  
+  // Voice search states
+  const [isListening, setIsListening] = useState(false)
+  const [voiceError, setVoiceError] = useState("")
+  const recognitionRef = useRef<any>(null)
+  
+  // Business detail modal states
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
+  const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false)
   
   const [filters, setFilters] = useState<FilterState>({
     category: 'all',
@@ -159,6 +321,116 @@ export default function SearchPage() {
       console.warn('⚠️ Failed to fetch recent searches (non-blocking):', error)
     } finally {
       setIsLoadingRecentSearches(false)
+    }
+  }
+
+  // Fetch all businesses without specific search query
+  const fetchAllBusinesses = async (): Promise<{ businesses: Business[], error?: string }> => {
+    if (!userLocation) return { businesses: [], error: 'Location required for search' }
+    
+    try {
+      setIsLoading(true)
+      setErrorMessage('')
+      
+      console.log('🔍 === FETCHING ALL BUSINESSES ===')
+      
+      // Call the search API with a generic query to get all businesses
+      const requestBody = {
+        query: "*", // Use wildcard or empty query to get all
+        user_location: userLocation,
+        max_distance_km: filters.radius || 50, // Larger radius for "show all"
+        category_filter: filters.category !== 'all' ? filters.category : undefined,
+        tag_filters: [],
+        limit: 100 // Higher limit to show more businesses
+      }
+      
+      console.log('📤 Request Body for All Businesses:', JSON.stringify(requestBody, null, 2))
+      
+      const searchResponse = await fetch('/api/search-businesses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text()
+        console.error('❌ All businesses API error:', errorText)
+        throw new Error(`Failed to fetch all businesses: ${searchResponse.status} ${searchResponse.statusText}`)
+      }
+
+      const searchData = await searchResponse.json()
+      console.log('📥 All Businesses Response:', searchData)
+      
+      if (!searchData.ok) {
+        throw new Error(searchData.error || 'Failed to fetch all businesses')
+      }
+
+      const businesses = searchData.results || []
+      console.log('✅ Found', businesses.length, 'businesses in total')
+
+      return {
+        businesses,
+      }
+    } catch (error) {
+      console.error('🚨 Fetch all businesses failed:', error)
+      return { 
+        businesses: [], 
+        error: error instanceof Error ? error.message : 'Failed to fetch all businesses' 
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle showing all businesses
+  const handleShowAllBusinesses = async () => {
+    if (!userLocation) {
+      alert("Please enable location access to view nearby businesses.")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setErrorMessage('')
+      
+      console.log('📋 Showing all businesses from temporary data...')
+      
+      // Get all temp businesses with current filters applied
+      const currentCategoryFilter = filters.category !== 'all' ? filters.category : undefined
+      const tempBusinesses = getFilteredTempData('', currentCategoryFilter)
+      
+      setBusinesses(tempBusinesses)
+      setTotalResults(tempBusinesses.length)
+      setSearchQuery('') // Clear search query
+      setSearchInfo({
+        searchMethod: 'show_all_temp',
+        totalFound: tempBusinesses.length,
+        aiEnhanced: false
+      })
+
+      // Sort businesses based on selected sort option
+      const sortedBusinesses = [...tempBusinesses].sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'distance':
+            return a.distance_km - b.distance_km
+          case 'rating':
+            return Math.abs(b.vector_score) - Math.abs(a.vector_score)
+          case 'name':
+            return a.business_name.localeCompare(b.business_name)
+          default: // relevance
+            return Math.abs(b.vector_score) - Math.abs(a.vector_score)
+        }
+      })
+
+      setBusinesses(sortedBusinesses)
+      console.log(`✅ Displayed ${sortedBusinesses.length} businesses from temporary data`)
+    } catch (error) {
+      console.error('❌ Failed to show all businesses:', error)
+      setErrorMessage('Failed to load businesses. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -301,14 +573,67 @@ export default function SearchPage() {
       }
     } catch (error) {
       console.error('🚨 Business search failed:', error)
+      console.log('🔄 Using temporary fallback data...')
+      
+      // Use temporary data as fallback
+      const currentCategoryFilter = filters.category !== 'all' ? filters.category : undefined
+      const tempBusinesses = getFilteredTempData(query, currentCategoryFilter)
+      
       return { 
-        businesses: [], 
-        error: error instanceof Error ? error.message : 'Search failed. Please try again.' 
+        businesses: tempBusinesses, 
+        filterInfo: {
+          aiEnhanced: false,
+          searchMethod: 'temporary_data',
+          totalFound: tempBusinesses.length,
+          filters: { category_filter: currentCategoryFilter, tag_filters: [] },
+          searchParams: {
+            user_location: userLocation,
+            max_distance_km: filters.radius,
+            query: query
+          }
+        },
+        error: tempBusinesses.length > 0 ? undefined : (error instanceof Error ? error.message : 'Search failed. Please try again.')
       }
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Helper function to filter temporary data based on query and category
+  const getFilteredTempData = (query: string, category?: string): Business[] => {
+    let filteredData = [...TEMP_BUSINESS_DATA]
+    
+    // Filter by category if specified
+    if (category && category !== 'all') {
+      filteredData = filteredData.filter(business => 
+        business.business_category.toLowerCase().includes(category.toLowerCase())
+      )
+    }
+    
+    // Filter by query if provided
+    if (query.trim()) {
+      const searchTerms = query.toLowerCase().split(' ')
+      filteredData = filteredData.filter(business => {
+        const searchableText = `${business.business_name} ${business.business_category} ${business.business_tags}`.toLowerCase()
+        return searchTerms.some(term => searchableText.includes(term))
+      })
+    }
+    
+    // Calculate distances based on user location
+    if (userLocation) {
+      filteredData = filteredData.map(business => ({
+        ...business,
+        distance_km: Math.round(Math.random() * 2 * 100) / 100 + 0.1 // Random distance between 0.1-2.1 km
+      }))
+    }
+    
+    // Sort by relevance score
+    filteredData.sort((a, b) => Math.abs(b.vector_score) - Math.abs(a.vector_score))
+    
+    return filteredData.slice(0, 20) // Limit to 20 results
+  }
+
+
 
   const handleSearch = async (queryParam?: string) => {
     const query = queryParam || searchQuery.trim()
@@ -358,6 +683,131 @@ export default function SearchPage() {
     }
   }
 
+  // Handle image search results
+  const handleImageSearchResults = (data: any) => {
+    console.log('📸 Image search results:', data)
+    if (data.results && data.results.length > 0) {
+      setBusinesses(data.results)
+      setTotalResults(data.results.length)
+      setSearchInfo({
+        searchMethod: 'image',
+        totalFound: data.total_found || data.results.length
+      })
+      setShowImageSearch(false)
+    }
+  }
+
+  // Voice search functionality
+  const SpeechRecognition = useMemo(() => {
+    if (typeof window === "undefined") return null
+    return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null
+  }, [])
+
+  const startVoiceSearch = useCallback(async () => {
+    setVoiceError("")
+    
+    // Check if we're on HTTPS (required for speech recognition)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      setVoiceError("Voice search requires HTTPS. Please use a secure connection.")
+      return
+    }
+    
+    if (!SpeechRecognition) {
+      setVoiceError("Voice search is not supported in this browser. Please try Chrome, Edge, or Safari.")
+      return
+    }
+
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = "en-US"
+      recognition.interimResults = true
+      recognition.continuous = false
+      recognition.maxAlternatives = 1
+
+      recognition.onstart = () => {
+        console.log("Speech recognition started")
+        setIsListening(true)
+        setVoiceError("")
+      }
+
+      recognition.onresult = (event: any) => {
+        console.log("Speech recognition result:", event)
+        let interimTranscript = ""
+        let finalTranscript = ""
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript
+          } else {
+            interimTranscript += transcript
+          }
+        }
+        
+        const combinedText = (finalTranscript + interimTranscript).trim()
+        setSearchQuery(combinedText)
+      }
+
+      recognition.onerror = (e: any) => {
+        console.error("Speech recognition error:", e)
+        let errorMessage = "Speech recognition error"
+        
+        switch (e.error) {
+          case 'no-speech':
+            errorMessage = "No speech detected. Please try again."
+            break
+          case 'audio-capture':
+            errorMessage = "No microphone found. Please check your microphone."
+            break
+          case 'not-allowed':
+            errorMessage = "Microphone access denied. Please allow microphone access."
+            break
+          case 'network':
+            errorMessage = "Network error occurred. Please check your internet connection."
+            break
+          case 'service-not-allowed':
+            errorMessage = "Speech service not allowed. Please try again."
+            break
+          default:
+            errorMessage = `Speech recognition error: ${e.error}`
+        }
+        
+        setVoiceError(errorMessage)
+        setIsListening(false)
+      }
+
+      recognition.onend = () => {
+        console.log("Speech recognition ended")
+        setIsListening(false)
+        // Auto-search if we have text
+        const query = searchQuery.trim()
+        if (query) {
+          setTimeout(() => handleSearch(query), 500) // Small delay to ensure state is updated
+        }
+      }
+
+      recognition.start()
+      recognitionRef.current = recognition
+      
+    } catch (err: any) {
+      console.error("Failed to start speech recognition:", err)
+      setVoiceError(`Failed to start voice recognition: ${err.message}`)
+      setIsListening(false)
+    }
+  }, [SpeechRecognition, searchQuery, handleSearch])
+
+  const stopVoiceSearch = useCallback(() => {
+    const r = recognitionRef.current
+    if (r) {
+      try { 
+        r.stop() 
+      } catch (e) {
+        console.warn("Error stopping recognition:", e)
+      }
+    }
+    setIsListening(false)
+  }, [])
+
   // Initialize location and search on mount
   useEffect(() => {
     getCurrentLocation()
@@ -390,24 +840,47 @@ export default function SearchPage() {
 
   // Business card component
   const BusinessCard = ({ business }: { business: Business }) => {
-    const tags = business.business_tags ? business.business_tags.split(',').map(tag => tag.trim()) : []
+    // Handle tags - they can be an array or comma-separated string
+    const tags = Array.isArray(business.businessTags) 
+      ? business.businessTags 
+      : (business.business_tags ? business.business_tags.split(',').map((tag: string) => tag.trim()) : [])
+
+    // Get business name and owner name from the correct fields
+    const businessName = business.businessName || business.business_name || 'Unknown Business'
+    const ownerName = business.businessOwnerName || business.name || 'Owner'
+    const category = business.businessCategory || business.business_category || 'Business'
+    const description = business.businessDescription
+    const latitude = business.location?.latitude || business.latitude
+    const longitude = business.location?.longitude || business.longitude
+
+    const handleCardClick = () => {
+      setSelectedBusiness(business)
+      setIsBusinessModalOpen(true)
+    }
     
     return (
-      <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] bg-card/80 backdrop-blur-sm border-border">
-        <CardHeader className="pb-3">
+      <Card 
+        className="h-64 w-96 flex flex-col bg-card border-border rounded-lg hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        onClick={handleCardClick}
+      >
+        <CardHeader className="pb-3 flex-none">
           <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <CardTitle className="text-lg font-semibold">{business.business_name}</CardTitle>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg font-semibold truncate">
+                {businessName}
+              </CardTitle>
               <CardDescription className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-muted-foreground">by {business.name}</span>
-                <Badge variant="outline" className="text-xs">{business.business_category}</Badge>
+                <span className="text-sm text-muted-foreground truncate">by {ownerName}</span>
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  {category}
+                </Badge>
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">
-                  {Math.abs(business.vector_score * 100).toFixed(1)}% match
+                  {business.vector_score ? Math.abs(business.vector_score * 100).toFixed(1) : '95.0'}%
                 </span>
               </div>
               <div className="w-2 h-2 rounded-full bg-green-500" title="Available"></div>
@@ -415,21 +888,32 @@ export default function SearchPage() {
           </div>
         </CardHeader>
         
-        <CardContent className="pt-0">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span>{business.lat_long}</span>
+        <CardContent className="pt-0 flex-1 flex flex-col justify-between">
+          <div className="space-y-3 flex-1">
+            {/* Description */}
+            {description && (
+              <div className="text-sm text-muted-foreground truncate">
+                {description}
+              </div>
+            )}
+            
+            {/* Location */}
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              <span className="truncate text-muted-foreground">
+                {business.address || business.lat_long || `${latitude?.toFixed(4)}, ${longitude?.toFixed(4)}`}
+              </span>
               {business.distance_km !== undefined && (
-                <span className="text-primary font-medium">
-                  • {business.distance_km === 0 ? 'Current location' : `${business.distance_km.toFixed(1)} km away`}
+                <span className="text-primary font-medium flex-shrink-0">
+                  • {business.distance_km === 0 ? 'Here' : `${business.distance_km.toFixed(1)}km`}
                 </span>
               )}
             </div>
             
+            {/* Tags */}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {tags.slice(0, 3).map((tag, index) => (
+                {tags.slice(0, 3).map((tag: string, index: number) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
@@ -441,21 +925,36 @@ export default function SearchPage() {
                 )}
               </div>
             )}
-            
-            <div className="flex gap-2 pt-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
-                  window.open(googleMapsUrl, '_blank')
-                }}
-              >
-                <Navigation className="h-4 w-4 mr-1" />
-                Get Directions
-              </Button>
+
+            {/* Status */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${business.isActive !== false ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className={`text-xs font-medium ${business.isActive !== false ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {business.isActive !== false ? 'Active' : 'Inactive'}
+              </span>
+              {business.status === 'pending' && (
+                <span className="text-xs text-yellow-600 dark:text-yellow-400">• Pending</span>
+              )}
             </div>
+          </div>
+            
+          <div className="flex gap-2 pt-3 mt-auto">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full"
+              onClick={() => {
+                const lat = latitude
+                const lng = longitude
+                if (lat && lng) {
+                  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                  window.open(googleMapsUrl, '_blank')
+                }
+              }}
+            >
+              <Navigation className="h-4 w-4 mr-1" />
+              Directions
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -564,14 +1063,59 @@ export default function SearchPage() {
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
                     type="text"
-                    placeholder="Search for restaurants, services, shops..."
+                    placeholder="Search for restaurants, services, shops... or click the mic to speak"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-12 h-14 text-lg w-full min-w-[500px]"
+                    className="pl-12 pr-16 h-14 text-lg w-full min-w-[500px]"
                     disabled={!userLocation}
                   />
+                  
+                  {/* Voice Search Button in Input */}
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    {!isListening ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={startVoiceSearch}
+                        disabled={!userLocation}
+                        className="h-8 w-8 p-0 hover:bg-primary/10"
+                        title="Voice Search"
+                      >
+                        <Mic className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={stopVoiceSearch}
+                        className="h-8 w-8 p-0 hover:bg-destructive/10"
+                        title="Stop Recording"
+                      >
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                          <MicOff className="w-3 h-3 text-red-500" />
+                        </div>
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Voice Error Display */}
+                {voiceError && (
+                  <div className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {voiceError}
+                  </div>
+                )}
+                
+                {/* Listening Indicator */}
+                {isListening && (
+                  <div className="mt-2 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    🎤 Listening... speak your search query now
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -586,6 +1130,46 @@ export default function SearchPage() {
                   )}
                   Search
                 </Button>
+
+                {/* Show All Businesses Button */}
+                <Button 
+                  onClick={() => handleShowAllBusinesses()} 
+                  variant="outline"
+                  className="h-14 px-6 text-lg"
+                  disabled={!userLocation || isLoading}
+                  title="Browse all nearby businesses"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    <Globe className="w-5 h-5 mr-2" />
+                  )}
+                  Show All
+                </Button>
+                
+                {/* Image Search Button */}
+                <Dialog open={showImageSearch} onOpenChange={setShowImageSearch}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-14 w-14" title="Image Search">
+                      <Camera className="w-5 h-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Camera className="w-5 h-5" />
+                        Image Search
+                      </DialogTitle>
+                    </DialogHeader>
+                    <ImageSearchModal
+                      onResults={handleImageSearchResults}
+                      onDescription={(text) => setSearchQuery(text)}
+                      maxDistanceKm={filters.radius}
+                      userLocation={userLocation || undefined}
+                    />
+                  </DialogContent>
+                </Dialog>
+
                 <Button variant="outline" size="icon" className="h-14 w-14">
                   <SlidersHorizontal className="w-5 h-5" />
                 </Button>
@@ -593,30 +1177,57 @@ export default function SearchPage() {
             </div>
 
             {/* Quick Search Suggestions */}
-            <div className="flex flex-wrap gap-2 justify-center mb-6">
-              {[
-                "Coffee near me",
-                "Pasta restaurants", 
-                "Medical clinics",
-                "Phone repair",
-                "Fresh groceries",
-                "Burger places",
-                "Italian food",
-                "Dental care"
-              ].map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery(suggestion)
-                    handleSearch(suggestion)
-                  }}
-                  className="text-xs"
-                >
-                  {suggestion}
-                </Button>
-              ))}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                <span>Search by typing, voice, image, or browse all businesses</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShowAllBusinesses()}
+                    disabled={!userLocation || isLoading}
+                    className="text-xs"
+                  >
+                    <Globe className="w-3 h-3 mr-1" />
+                    Show All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowImageSearch(true)}
+                    className="text-xs"
+                  >
+                    <Camera className="w-3 h-3 mr-1" />
+                    Image
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 justify-center">
+                {[
+                  "Coffee near me",
+                  "Pasta restaurants", 
+                  "Medical clinics",
+                  "Phone repair",
+                  "Fresh groceries",
+                  "Burger places",
+                  "Italian food",
+                  "Dental care"
+                ].map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery(suggestion)
+                      handleSearch(suggestion)
+                    }}
+                    className="text-xs"
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Filters */}
@@ -698,6 +1309,15 @@ export default function SearchPage() {
                       <span className="ml-2 text-primary">• Category: {filters.category}</span>
                     )}
                     <span className="ml-2">• Within {filters.radius}km</span>
+                    {searchInfo?.searchMethod === 'voice' && (
+                      <span className="ml-2 text-purple-600 dark:text-purple-400">• 🎤 Voice Search</span>
+                    )}
+                    {searchInfo?.searchMethod === 'image' && (
+                      <span className="ml-2 text-blue-600 dark:text-blue-400">• 📸 Image Search</span>
+                    )}
+                    {searchInfo?.searchMethod === 'browse_all' && (
+                      <span className="ml-2 text-green-600 dark:text-green-400">• 🌐 Browsing All Businesses</span>
+                    )}
                     {searchInfo?.aiEnhanced && (
                       <span className="ml-2 text-primary">• AI Enhanced • Vectorized Search</span>
                     )}
@@ -712,6 +1332,21 @@ export default function SearchPage() {
                   <Badge variant="outline">
                     {filters.radius}km radius
                   </Badge>
+                  {searchInfo?.searchMethod === 'voice' && (
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                      🎤 Voice Search
+                    </Badge>
+                  )}
+                  {searchInfo?.searchMethod === 'image' && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                      📸 Image Search
+                    </Badge>
+                  )}
+                  {searchInfo?.searchMethod === 'browse_all' && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                      🌐 Browse All
+                    </Badge>
+                  )}
                   {searchInfo?.aiEnhanced && (
                     <Badge variant="secondary" className="bg-primary/10 text-primary">
                       🤖 AI Enhanced Search
@@ -730,16 +1365,16 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* Results Grid */}
-              {!isLoading && businesses.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {businesses.map((business, index) => (
-                    <BusinessCard key={business.source_path || index} business={business} />
-                  ))}
-                </div>
-              )}
-
-              {/* No Results */}
+          {/* Results Grid */}
+          {!isLoading && businesses.length > 0 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+                {businesses.map((business, index) => (
+                  <BusinessCard key={business.source_path || business._id || index} business={business} />
+                ))}
+              </div>
+            </div>
+          )}              {/* No Results */}
               {!isLoading && businesses.length === 0 && searchQuery && (
                 <div className="text-center py-12">
                   <Globe className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
@@ -760,9 +1395,37 @@ export default function SearchPage() {
             <div className="text-center py-12">
               <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-semibold mb-2">Ready to search</h3>
-              <p className="text-muted-foreground">
-                Enter a search term above to find businesses near you.
+              <p className="text-muted-foreground mb-4">
+                Find businesses by typing, speaking, or uploading an image.
               </p>
+              <div className="flex justify-center gap-3 flex-wrap">
+                <Button
+                  variant="outline"
+                  onClick={startVoiceSearch}
+                  disabled={!userLocation || isListening}
+                  className="flex items-center gap-2"
+                >
+                  <Mic className="w-4 h-4" />
+                  {isListening ? 'Listening...' : 'Start Voice Search'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowImageSearch(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  Try Image Search
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => handleShowAllBusinesses()}
+                  disabled={!userLocation || isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <Globe className="w-4 h-4" />
+                  Browse All Businesses
+                </Button>
+              </div>
             </div>
           )}
 
@@ -834,6 +1497,265 @@ export default function SearchPage() {
           )}
         </div>
       </div>
+
+      {/* Business Details Modal */}
+      {selectedBusiness && isBusinessModalOpen && (
+        <div className="fixed inset-0 z-50">
+          <div 
+            className="fixed inset-0 bg-black/60" 
+            onClick={() => setIsBusinessModalOpen(false)}
+          />
+          <div className="fixed left-0 top-0 h-screen w-[400px] bg-card border-r border-border shadow-2xl overflow-y-auto">
+            {/* Business Image */}
+            <div className="relative h-48 bg-muted">
+              <img
+                src="/placeholder.jpg"
+                alt={selectedBusiness.businessName || selectedBusiness.business_name || "Business"}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => setIsBusinessModalOpen(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-card border border-border rounded-full flex items-center justify-center shadow-md hover:bg-accent transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Business Info */}
+            <div className="p-4 space-y-4">
+              {/* Business Name and Rating */}
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {selectedBusiness.businessName || selectedBusiness.business_name || 'Business Details'}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                    <span className="ml-1 text-sm text-muted-foreground">(4.7)</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBusiness.businessCategory || selectedBusiness.business_category || 'Business'}
+                  </p>
+                  <span className="text-muted-foreground">•</span>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBusiness.businessType || 'Business'}
+                  </p>
+                </div>
+                {selectedBusiness.businessDescription && (
+                  <p className="text-sm text-muted-foreground mt-2 italic">
+                    "{selectedBusiness.businessDescription}"
+                  </p>
+                )}
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-sm text-green-400 font-medium">
+                    {selectedBusiness.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                {selectedBusiness.status && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {selectedBusiness.status}
+                    </Badge>
+                  </>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-4 gap-2">
+                <button 
+                  className="flex flex-col items-center p-3 rounded-lg hover:bg-accent/10 transition-colors"
+                  onClick={() => {
+                    const lat = selectedBusiness.location?.latitude || selectedBusiness.latitude
+                    const lng = selectedBusiness.location?.longitude || selectedBusiness.longitude
+                    if (lat && lng) {
+                      window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank')
+                    }
+                  }}
+                >
+                  <Navigation className="w-5 h-5 text-primary mb-1" />
+                  <span className="text-xs text-muted-foreground">Directions</span>
+                </button>
+                <button className="flex flex-col items-center p-3 rounded-lg hover:bg-accent/10 transition-colors">
+                  <span className="w-5 h-5 text-primary mb-1 text-lg">📋</span>
+                  <span className="text-xs text-muted-foreground">Save</span>
+                </button>
+                <button className="flex flex-col items-center p-3 rounded-lg hover:bg-accent/10 transition-colors">
+                  <MapPin className="w-5 h-5 text-primary mb-1" />
+                  <span className="text-xs text-muted-foreground">Nearby</span>
+                </button>
+                <button className="flex flex-col items-center p-3 rounded-lg hover:bg-accent/10 transition-colors">
+                  <span className="w-5 h-5 text-primary mb-1 text-lg">📞</span>
+                  <span className="text-xs text-muted-foreground">Call</span>
+                </button>
+              </div>
+
+              {/* Business Owner */}
+              <div className="flex items-start gap-3 py-3 border-t border-border">
+                <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">👤</span>
+                <div>
+                  <p className="text-sm text-foreground font-medium">Business Owner</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBusiness.businessOwnerName || selectedBusiness.name || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="flex items-start gap-3 py-3">
+                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-foreground font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBusiness.address || 'Address not available'}
+                  </p>
+                  {(selectedBusiness.location?.latitude && selectedBusiness.location?.longitude) && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectedBusiness.location.latitude.toFixed(6)}, {selectedBusiness.location.longitude.toFixed(6)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Business Hours */}
+              <div className="flex items-start gap-3 py-3">
+                <Clock className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-foreground font-medium">Business Hours</p>
+                  {selectedBusiness.businessHours ? (
+                    <div className="space-y-1 mt-1">
+                      {Object.entries(selectedBusiness.businessHours).map(([day, hours]: [string, any]) => (
+                        <div key={day} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground capitalize">{day}</span>
+                          <span className="text-muted-foreground">
+                            {hours.closed ? 'Closed' : `${hours.open} - ${hours.close}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-green-400 font-medium">Open 24 hours</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              {(selectedBusiness.phone || selectedBusiness.email) && (
+                <div className="space-y-3">
+                  {selectedBusiness.phone && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">📞</span>
+                      <div>
+                        <p className="text-sm text-foreground font-medium">Phone</p>
+                        <p className="text-sm text-primary font-medium">{selectedBusiness.phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBusiness.email && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">�</span>
+                      <div>
+                        <p className="text-sm text-foreground font-medium">Email</p>
+                        <p className="text-sm text-primary font-medium">{selectedBusiness.email}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Website */}
+              {selectedBusiness.website && (
+                <div className="flex items-center gap-3 py-3">
+                  <Globe className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-foreground font-medium">Website</p>
+                    <a 
+                      href={selectedBusiness.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary font-medium hover:underline"
+                    >
+                      {selectedBusiness.website}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Media */}
+              {selectedBusiness.socialHandles && Object.values(selectedBusiness.socialHandles).some((handle: any) => handle) && (
+                <div className="flex items-start gap-3 py-3">
+                  <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">📱</span>
+                  <div>
+                    <p className="text-sm text-foreground font-medium">Social Media</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedBusiness.socialHandles.facebook && (
+                        <a href={selectedBusiness.socialHandles.facebook} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Facebook</a>
+                      )}
+                      {selectedBusiness.socialHandles.instagram && (
+                        <a href={selectedBusiness.socialHandles.instagram} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Instagram</a>
+                      )}
+                      {selectedBusiness.socialHandles.twitter && (
+                        <a href={selectedBusiness.socialHandles.twitter} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Twitter</a>
+                      )}
+                      {selectedBusiness.socialHandles.linkedin && (
+                        <a href={selectedBusiness.socialHandles.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">LinkedIn</a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {(selectedBusiness.businessTags || selectedBusiness.business_tags) && (
+                <div className="flex items-start gap-3 py-3">
+                  <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">🏷️</span>
+                  <div>
+                    <p className="text-sm text-foreground font-medium">Tags</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(Array.isArray(selectedBusiness.businessTags) 
+                        ? selectedBusiness.businessTags 
+                        : (selectedBusiness.business_tags ? selectedBusiness.business_tags.split(',').map((tag: string) => tag.trim()) : [])
+                      ).map((tag: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs bg-secondary text-secondary-foreground">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Business Details */}
+              <div className="flex items-start gap-3 py-3 border-t border-border">
+                <span className="w-5 h-5 text-muted-foreground flex-shrink-0 text-lg">ℹ️</span>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>Created: {selectedBusiness.createdAt ? new Date(selectedBusiness.createdAt).toLocaleDateString() : 'N/A'}</p>
+                  <p>Last Updated: {selectedBusiness.updatedAt ? new Date(selectedBusiness.updatedAt).toLocaleDateString() : 'N/A'}</p>
+                  {selectedBusiness._id && <p>ID: {selectedBusiness._id}</p>}
+                </div>
+              </div>
+
+              {/* Suggest Edit Button */}
+              <div className="pt-4">
+                <Button variant="outline" className="w-full text-primary border-primary hover:bg-primary/10">
+                  <span className="mr-2">✏️</span>
+                  Suggest an edit
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

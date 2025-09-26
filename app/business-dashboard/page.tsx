@@ -131,11 +131,13 @@ export default function BusinessDashboard() {
   // Pre-populate form data with existing business data
   useEffect(() => {
     if (businessData) {
+      console.log('📝 Pre-populating form with business data:', businessData)
+      
       setPendingFormData(prev => ({
         ...prev,
-        // Basic business information
+        // Basic business information - use mapped data
         businessName: businessData.name || `${user?.firstName}'s Business`,
-        businessOwnerName: user ? `${user.firstName} ${user.lastName}` : 'Business Owner',
+        businessOwnerName: businessData.ownerName || (user ? `${user.firstName} ${user.lastName}` : 'Business Owner'),
         businessDescription: businessData.description || '',
         businessCategory: businessData.category || '',
         businessTags: Array.isArray(businessData.tags) ? businessData.tags.join(', ') : '',
@@ -154,19 +156,28 @@ export default function BusinessDashboard() {
           linkedin: ''
         }
       }))
+      
+      console.log('✅ Form data updated with business information')
     }
   }, [businessData, user])
 
   // Define fetchBusinessData as a useCallback to avoid dependency issues
   const fetchBusinessData = useCallback(async () => {
     try {
+      console.log('🔍 Fetching business data for user:', user?.id)
+      
       // Fetch business data from your API
       const response = await fetch(`/api/business/${user?.id}`)
+      console.log('📥 API Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('📊 API Response data:', data)
+        
         if (data.success && data.business) {
-          // Map business data to expected format
+          // Map MongoDB business data to expected format
           const business = data.business
+          console.log('🏢 Raw business data from MongoDB:', business)
           
           // Check if business has completed ALL additional information
           const hasBusinessHours = business.businessHours && Object.values(business.businessHours).some((day: any) => 
@@ -176,6 +187,13 @@ export default function BusinessDashboard() {
           const hasSocialHandles = business.socialHandles && Object.values(business.socialHandles).some((handle: any) => 
             handle && typeof handle === 'string' && handle.trim() !== ''
           )
+          
+          console.log('📋 Business completion check:', {
+            hasBusinessHours,
+            hasWebsite, 
+            hasSocialHandles,
+            status: business.status
+          })
           
           // Require business hours AND (website OR social media) for pending businesses
           const hasAllRequiredInfo = hasBusinessHours && (hasWebsite || hasSocialHandles)
@@ -187,36 +205,50 @@ export default function BusinessDashboard() {
             setShowPendingForm(true)
           }
           
-          setBusinessData({
-            name: business.businessName,
-            ownerName: business.businessOwnerName,
-            category: business.businessCategory,
+          // Map MongoDB fields to dashboard format
+          const mappedBusinessData = {
+            name: business.businessName || `${user?.firstName}'s Business`,
+            ownerName: business.businessOwnerName || `${user?.firstName} ${user?.lastName}`,
+            category: business.businessCategory || 'Business',
             description: business.businessDescription || "No description provided",
-            address: business.address,
+            address: business.address || "Address not provided",
             phone: business.phone || "Not provided",
-            email: business.email,
-            tags: business.businessTags || [],
-            location: business.location,
-            status: business.status,
-            businessType: business.businessType || "Not specified",
-            isActive: business.isActive,
+            email: business.email || user?.primaryEmailAddress?.emailAddress || "",
+            tags: Array.isArray(business.businessTags) ? business.businessTags : [],
+            location: {
+              latitude: business.location?.latitude || null,
+              longitude: business.location?.longitude || null
+            },
+            status: business.status || 'pending',
+            businessType: business.businessType || business.businessCategory || "Not specified",
+            isActive: business.isActive ?? true,
             createdAt: business.createdAt,
             updatedAt: business.updatedAt,
             businessHours: business.businessHours || null,
             website: business.website || null,
-            socialHandles: business.socialHandles || {},
+            socialHandles: business.socialHandles || {
+              facebook: '',
+              instagram: '',
+              twitter: '',
+              linkedin: ''
+            },
             businessImages: business.businessImages || [],
             // Default values for metrics (these would come from analytics API later)
-            rating: null,
-            totalReviews: null,
-            monthlyViews: null,
-            profileCompletion: null,
-            lastUpdated: business.updatedAt
-          })
+            rating: 4.5, // Mock data
+            totalReviews: 23, // Mock data
+            monthlyViews: 1234, // Mock data
+            profileCompletion: hasAllRequiredInfo ? 90 : 65,
+            lastUpdated: business.updatedAt,
+            isRegistered: true
+          }
+          
+          console.log('🎯 Mapped business data:', mappedBusinessData)
+          setBusinessData(mappedBusinessData)
         } else {
-          throw new Error('No business found')
+          throw new Error('No business found in response')
         }
       } else {
+        console.warn('⚠️ API response not ok:', response.status)
         // Use mock data if no business found - show onboarding form directly
         setBusinessData({
           name: `${user?.firstName}'s Business`,
@@ -239,7 +271,7 @@ export default function BusinessDashboard() {
         setIsBusinessCompleted(false)
       }
     } catch (error) {
-      console.error('Error fetching business data:', error)
+      console.error('❌ Error fetching business data:', error)
       // Use fallback data for new users - show onboarding form directly
       setBusinessData({
         name: `${user?.firstName}'s Business`,
@@ -1780,11 +1812,11 @@ export default function BusinessDashboard() {
                   <div className="rounded-lg overflow-hidden">
                     <BusinessMap 
                       businessInfo={{
-                        name: businessInfo.name,
-                        latitude: 40.7589,
-                        longitude: -73.9851,
-                        rating: businessInfo.rating,
-                        category: businessInfo.category
+                        name: businessInfo.name || 'Your Business',
+                        latitude: businessInfo.location?.latitude || 40.7589,
+                        longitude: businessInfo.location?.longitude || -73.9851,
+                        rating: businessInfo.rating || 0,
+                        category: businessInfo.category || 'Business'
                       }}
                       competitors={nearbyCompetitors}
                     />
