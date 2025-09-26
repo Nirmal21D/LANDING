@@ -12,7 +12,7 @@ export async function GET() {
     
     console.log('📤 Test request:', testRequest)
     
-    const response = await fetch('http://128.199.11.96:8001/search-businesses', {
+    const response = await fetch('http://localhost:8001/search-businesses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

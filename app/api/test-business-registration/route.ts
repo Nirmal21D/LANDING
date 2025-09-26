@@ -12,7 +12,7 @@ export async function GET() {
     
     console.log('📤 Test registration request:', testRequest)
     
-    const response = await fetch('http://128.199.11.96:8001/append-csv', {
+    const response = await fetch('http://localhost:8001/append-csv', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

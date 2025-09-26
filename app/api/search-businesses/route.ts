@@ -56,11 +56,11 @@ export async function POST(request: NextRequest) {
       limit
     }
 
-    console.log('🚀 Making request to search API:', 'http://128.199.11.96:8001/search-businesses')
+    console.log('🚀 Making request to search API:', 'http://localhost:8001/search-businesses')
     console.log('📤 Request payload:', JSON.stringify(apiRequest, null, 2))
 
     // Forward the request to the actual API
-    const response = await fetch('http://128.199.11.96:8001/search-businesses', {
+    const response = await fetch('http://localhost:8001/search-businesses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

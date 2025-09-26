@@ -77,6 +77,9 @@ export default function ThikanaAILanding() {
             <NavbarButton href="/search" variant="secondary">
               Search
             </NavbarButton>
+            <NavbarButton href="/login" variant="ghost">
+              Login
+            </NavbarButton>
             <NavbarButton href="/business-register" variant="primary">
               Register Business
             </NavbarButton>
@@ -110,6 +113,9 @@ export default function ThikanaAILanding() {
               <div className="border-t border-border my-4"></div>
               <NavbarButton href="/search" variant="secondary">
                 Search
+              </NavbarButton>
+              <NavbarButton href="/login" variant="ghost">
+                Login
               </NavbarButton>
               <NavbarButton href="/business-register" variant="primary">
                 Register Business

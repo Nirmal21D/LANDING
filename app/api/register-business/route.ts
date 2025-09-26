@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Call both APIs in parallel
     const [firstResponse, secondResponse] = await Promise.allSettled([
-      fetch('http://128.199.11.96:8001/append-csv', {
+      fetch('http://localhost:8001/append-csv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

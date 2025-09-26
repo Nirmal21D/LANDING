@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { User, Building2, MapPin, Tag, Navigation, Sparkles, ArrowRight, HelpCircle, Triangle, Wand2 } from "lucide-react"
+import { User, Building2, MapPin, Tag, Navigation, Sparkles, ArrowRight, HelpCircle, Triangle, Wand2, Eye, EyeOff, Lock, Shield } from "lucide-react"
 import Link from "next/link"
 import { 
   Navbar, 
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/resizable-navbar"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { Footer } from "@/components/ui/footer"
+import LocationMap from "@/components/ui/location-map"
 
 export default function BusinessRegisterPage() {
   const [formData, setFormData] = useState({
@@ -34,11 +35,21 @@ export default function BusinessRegisterPage() {
     email: '',
     phone: '',
     address: '',
-    businessType: ''
+    businessType: '',
+    password: '',
+    confirmPassword: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingTags, setIsGeneratingTags] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    message: '',
+    color: 'text-gray-500'
+  })
+  const [passwordMatch, setPasswordMatch] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -52,6 +63,66 @@ export default function BusinessRegisterPage() {
       ...formData,
       [name]: value
     })
+  }
+
+  const validatePasswordStrength = (password: string) => {
+    let score = 0
+    let message = ''
+    let color = 'text-red-500'
+
+    if (password.length >= 8) score++
+    if (/[A-Z]/.test(password)) score++
+    if (/[a-z]/.test(password)) score++
+    if (/\d/.test(password)) score++
+    if (/[^A-Za-z0-9]/.test(password)) score++
+
+    switch (score) {
+      case 0:
+      case 1:
+        message = 'Very Weak'
+        color = 'text-red-500'
+        break
+      case 2:
+        message = 'Weak'
+        color = 'text-orange-500'
+        break
+      case 3:
+        message = 'Fair'
+        color = 'text-yellow-500'
+        break
+      case 4:
+        message = 'Good'
+        color = 'text-blue-500'
+        break
+      case 5:
+        message = 'Strong'
+        color = 'text-green-500'
+        break
+    }
+
+    return { score, message, color }
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]: value
+    })
+
+    if (name === 'password') {
+      const strength = validatePasswordStrength(value)
+      setPasswordStrength(strength)
+      
+      // Check if passwords match when password changes
+      if (formData.confirmPassword) {
+        setPasswordMatch(value === formData.confirmPassword)
+      }
+    }
+
+    if (name === 'confirmPassword') {
+      setPasswordMatch(value === formData.password)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,7 +210,9 @@ export default function BusinessRegisterPage() {
           email: '',
           phone: '',
           address: '',
-          businessType: ''
+          businessType: '',
+          password: '',
+          confirmPassword: ''
         })
       } else {
         throw new Error(result.error || 'Registration failed')
@@ -297,17 +370,17 @@ export default function BusinessRegisterPage() {
         </MobileNav>
       </Navbar>
       
-      <div className="pt-20 pb-8 px-4 max-w-2xl mx-auto">
+      <div className="pt-16 pb-6 px-4 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-medium mb-4 border border-primary/30">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm font-medium mb-3 border border-primary/30">
             <Building2 className="w-4 h-4 mr-2" />
             Business Registration
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-glow">
+          <h1 className="text-2xl md:text-3xl font-bold mb-3 text-glow">
             Register New <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Business</span>
           </h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-muted-foreground max-w-lg mx-auto text-sm">
             Join Thikana AI and make your business discoverable to local customers through our AI-powered platform
           </p>
         </div>
@@ -316,75 +389,124 @@ export default function BusinessRegisterPage() {
         <Card className="p-6 bg-card/50 backdrop-blur-sm border-border shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            {/* Business Owner Name */}
-            <div className="space-y-2">
-              <Label htmlFor="businessOwnerName" className="text-sm font-medium flex items-center">
-                <User className="w-4 h-4 mr-2 text-primary" />
-                Business Owner Name *
-              </Label>
-              <Input
-                id="businessOwnerName"
-                name="businessOwnerName"
-                type="text"
-                placeholder="e.g., John Smith"
-                value={formData.businessOwnerName}
-                onChange={handleInputChange}
-                className="bg-background border-border focus:ring-primary"
-                required
-              />
-            </div>
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 pb-2 border-b border-border/30">
+                <Building2 className="w-4 h-4 text-primary" />
+                <h3 className="text-lg font-semibold">Basic Information</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Business Owner Name */}
+                <div className="space-y-1">
+                  <Label htmlFor="businessOwnerName" className="text-sm font-medium flex items-center">
+                    <User className="w-3 h-3 mr-1.5 text-primary" />
+                    Business Owner Name *
+                  </Label>
+                  <Input
+                    id="businessOwnerName"
+                    name="businessOwnerName"
+                    type="text"
+                    placeholder="e.g., John Smith"
+                    value={formData.businessOwnerName}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                    required
+                  />
+                </div>
 
-            {/* Business Name */}
-            <div className="space-y-2">
-              <Label htmlFor="businessName" className="text-sm font-medium flex items-center">
-                <Building2 className="w-4 h-4 mr-2 text-primary" />
-                Business Name *
-              </Label>
-              <Input
-                id="businessName"
-                name="businessName"
-                type="text"
-                placeholder="e.g., Smith's Coffee House"
-                value={formData.businessName}
-                onChange={handleInputChange}
-                className="bg-background border-border focus:ring-primary"
-                required
-              />
-            </div>
+                {/* Business Name */}
+                <div className="space-y-1">
+                  <Label htmlFor="businessName" className="text-sm font-medium flex items-center">
+                    <Building2 className="w-3 h-3 mr-1.5 text-primary" />
+                    Business Name *
+                  </Label>
+                  <Input
+                    id="businessName"
+                    name="businessName"
+                    type="text"
+                    placeholder="e.g., Smith's Coffee House"
+                    value={formData.businessName}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                    required
+                  />
+                </div>
+              </div>
 
-            {/* Business Description */}
-            <div className="space-y-2">
-              <Label htmlFor="businessDescription" className="text-sm font-medium flex items-center">
-                <Building2 className="w-4 h-4 mr-2 text-accent" />
-                Business Description *
-              </Label>
-              <Textarea
-                id="businessDescription"
-                name="businessDescription"
-                placeholder="Describe your business, services, atmosphere, and what makes it unique... 
+              {/* Business Description */}
+              <div className="space-y-1">
+                <Label htmlFor="businessDescription" className="text-sm font-medium flex items-center">
+                  <Building2 className="w-3 h-3 mr-1.5 text-accent" />
+                  Business Description *
+                </Label>
+                <Textarea
+                  id="businessDescription"
+                  name="businessDescription"
+                  placeholder="Describe your business, services, atmosphere, and what makes it unique..."
+                  value={formData.businessDescription}
+                  onChange={handleInputChange}
+                  className="bg-background border-border focus:ring-primary min-h-[70px]"
+                  rows={2}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide a detailed description to help generate relevant tags automatically
+                </p>
+              </div>
 
-Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and light meals. We pride ourselves on locally sourced ingredients, friendly service, and providing a comfortable workspace for remote professionals and students.'"
-                value={formData.businessDescription}
-                onChange={handleInputChange}
-                className="bg-background border-border focus:ring-primary min-h-[100px]"
-                rows={4}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Provide a detailed description to help generate relevant tags automatically
-              </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Business Category */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium flex items-center">
+                    <Tag className="w-3 h-3 mr-1.5 text-accent" />
+                    Business Category *
+                  </Label>
+                  <Select onValueChange={(value: string) => handleSelectChange('businessCategory', value)}>
+                    <SelectTrigger className="bg-background border-border focus:ring-primary">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businessCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Business Type */}
+                <div className="space-y-1">
+                  <Label htmlFor="businessType" className="text-sm font-medium">
+                    Business Type
+                  </Label>
+                  <Input
+                    id="businessType"
+                    name="businessType"
+                    type="text"
+                    placeholder="e.g., Technology, Retail, Food Service"
+                    value={formData.businessType}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Will use Business Category if not specified
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Contact Information Section */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <User className="w-5 h-5 text-accent" />
-                <h3 className="text-lg font-semibold">Contact Information</h3>
+              <div className="flex items-center space-x-2 pb-2 border-b border-border/30">
+                <User className="w-4 h-4 text-accent" />
+                <h3 className="text-lg font-semibold">Contact & Address</h3>
               </div>
               
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Email */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="email" className="text-sm font-medium">
                     Email Address
                   </Label>
@@ -400,7 +522,7 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
                 </div>
 
                 {/* Phone */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="phone" className="text-sm font-medium">
                     Phone Number
                   </Label>
@@ -414,54 +536,35 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
                     className="bg-background border-border focus:ring-primary"
                   />
                 </div>
-              </div>
 
-              {/* Address */}
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm font-medium">
-                  Business Address
-                </Label>
-                <Input
-                  id="address"
-                  name="address"
-                  type="text"
-                  placeholder="e.g., 123 Main St, City, State"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="bg-background border-border focus:ring-primary"
-                />
-              </div>
-
-              {/* Business Type */}
-              <div className="space-y-2">
-                <Label htmlFor="businessType" className="text-sm font-medium">
-                  Business Type
-                </Label>
-                <Input
-                  id="businessType"
-                  name="businessType"
-                  type="text"
-                  placeholder="e.g., Technology, Retail, Food Service"
-                  value={formData.businessType}
-                  onChange={handleInputChange}
-                  className="bg-background border-border focus:ring-primary"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Will use Business Category if not specified
-                </p>
+                {/* Address */}
+                <div className="space-y-1">
+                  <Label htmlFor="address" className="text-sm font-medium">
+                    Business Address
+                  </Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    type="text"
+                    placeholder="e.g., 123 Main St, City, State"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="bg-background border-border focus:ring-primary"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Location Details Section */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <MapPin className="w-5 h-5 text-accent" />
+                <MapPin className="w-4 h-4 text-accent" />
                 <h3 className="text-lg font-semibold">Location Details</h3>
               </div>
-              
-              <div className="grid md:grid-cols-2 gap-4">
+              {/* Location Coordinates */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Latitude */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="latitude" className="text-sm font-medium flex items-center">
                     Latitude *
                     <HelpCircle className="w-3 h-3 ml-1 text-muted-foreground" />
@@ -480,7 +583,7 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
                 </div>
 
                 {/* Longitude */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="longitude" className="text-sm font-medium flex items-center">
                     Longitude *
                     <HelpCircle className="w-3 h-3 ml-1 text-muted-foreground" />
@@ -497,87 +600,231 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
                     required
                   />
                 </div>
+
+                {/* Get Current Location Button */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-transparent">Location</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={getCurrentLocation}
+                    className="w-full bg-background border-border hover:bg-muted"
+                  >
+                    <Navigation className="w-4 h-4 mr-2" />
+                    Use Current Location
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Location & Security Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Location Map */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border/30">
+                  <MapPin className="w-4 h-4 text-accent" />
+                  <h3 className="text-lg font-semibold">Business Location</h3>
+                </div>
+                <div className="">
+                  <LocationMap 
+                    latitude={formData.latitude ? parseFloat(formData.latitude) : null}
+                    longitude={formData.longitude ? parseFloat(formData.longitude) : null}
+                    address={formData.address}
+                    onLocationChange={(lat, lng) => {
+                      setFormData({
+                        ...formData,
+                        latitude: lat.toString(),
+                        longitude: lng.toString()
+                      })
+                    }}
+                    onAddressChange={(address) => {
+                      setFormData({
+                        ...formData,
+                        address: address
+                      })
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* Get Current Location Button */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getCurrentLocation}
-                className="w-full bg-background border-border hover:bg-muted"
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                Use Current Location
-              </Button>
-            </div>
+              {/* Account Security Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border/30">
+                  <Shield className="w-4 h-4 text-accent" />
+                  <h3 className="text-lg font-semibold">Account Security</h3>
+                </div>
 
-            {/* Business Category */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center">
-                <Tag className="w-4 h-4 mr-2 text-accent" />
-                Business Category *
-              </Label>
-              <Select onValueChange={(value: string) => handleSelectChange('businessCategory', value)}>
-                <SelectTrigger className="bg-background border-border focus:ring-primary">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {businessCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Business Tags */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="businessTags" className="text-sm font-medium flex items-center">
-                  <Tag className="w-4 h-4 mr-2 text-accent" />
-                  Business Tags
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={generateTags}
-                  disabled={isGeneratingTags || !formData.businessName || !formData.businessDescription}
-                  className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 hover:from-accent/20 hover:to-primary/20"
-                >
-                  {isGeneratingTags ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-accent mr-2"></div>
-                      AI Generating...
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <Wand2 className="w-3 h-3 mr-2" />
-                      Generate AI Tags
+                {/* Password */}
+                <div className="space-y-1">
+                  <Label htmlFor="password" className="text-sm font-medium flex items-center">
+                    <Lock className="w-3 h-3 mr-1.5 text-primary" />
+                    Password *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      value={formData.password}
+                      onChange={handlePasswordChange}
+                      className="bg-background border-border focus:ring-primary pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {formData.password && (
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1 bg-muted rounded-full h-1 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-300 ${
+                              passwordStrength.score <= 1 ? 'bg-red-500' :
+                              passwordStrength.score === 2 ? 'bg-orange-500' :
+                              passwordStrength.score === 3 ? 'bg-yellow-500' :
+                              passwordStrength.score === 4 ? 'bg-blue-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium ${passwordStrength.color}`}>
+                          {passwordStrength.message}
+                        </span>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
+                        <li className={formData.password.length >= 8 ? 'text-green-600' : ''}>
+                          ✓ At least 8 characters
+                        </li>
+                        <li className={/[A-Z]/.test(formData.password) ? 'text-green-600' : ''}>
+                          ✓ One uppercase letter
+                        </li>
+                        <li className={/[a-z]/.test(formData.password) ? 'text-green-600' : ''}>
+                          ✓ One lowercase letter
+                        </li>
+                        <li className={/\d/.test(formData.password) ? 'text-green-600' : ''}>
+                          ✓ One number
+                        </li>
+                      </ul>
                     </div>
                   )}
-                </Button>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium flex items-center">
+                    <Lock className="w-3 h-3 mr-1.5 text-primary" />
+                    Confirm Password *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      className={`bg-background border-border focus:ring-primary pr-10 ${
+                        formData.confirmPassword && !passwordMatch ? 'border-red-500 focus:ring-red-500' : ''
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {formData.confirmPassword && (
+                    <p className={`text-xs ${passwordMatch ? 'text-green-600' : 'text-red-600'}`}>
+                      {passwordMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                    </p>
+                  )}
+                </div>
               </div>
-              <Textarea
-                id="businessTags"
-                name="businessTags"
-                placeholder="e.g., coffee,wifi,outdoor seating,takeout"
-                value={formData.businessTags}
-                onChange={handleInputChange}
-                className="bg-background border-border focus:ring-primary min-h-[80px]"
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Add relevant tags separated by commas to help customers find your business, or use the generate button to auto-create tags from your description
-              </p>
+            </div>
+
+            {/* Business Tags Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 pb-2 border-b border-border/30">
+                <Tag className="w-4 h-4 text-accent" />
+                <h3 className="text-lg font-semibold">Business Tags</h3>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="businessTags" className="text-sm font-medium flex items-center">
+                    Business Tags (Optional)
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={generateTags}
+                    disabled={isGeneratingTags || !formData.businessName || !formData.businessDescription}
+                    className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 hover:from-accent/20 hover:to-primary/20 text-xs"
+                  >
+                    {isGeneratingTags ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-accent mr-2"></div>
+                        AI Generating...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Wand2 className="w-3 h-3 mr-2" />
+                        Generate AI Tags
+                      </div>
+                    )}
+                  </Button>
+                </div>
+                <Textarea
+                  id="businessTags"
+                  name="businessTags"
+                  placeholder="e.g., coffee,wifi,outdoor seating,takeout"
+                  value={formData.businessTags}
+                  onChange={handleInputChange}
+                  className="bg-background border-border focus:ring-primary min-h-[60px]"
+                  rows={2}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Add relevant tags separated by commas to help customers find your business, or use the generate button to auto-create tags from your description
+                </p>
+              </div>
             </div>
 
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={isLoading || !formData.businessOwnerName || !formData.businessName || !formData.businessDescription || !formData.latitude || !formData.longitude || !formData.businessCategory}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white py-4 text-lg font-semibold"
+              disabled={
+                isLoading || 
+                !formData.businessOwnerName || 
+                !formData.businessName || 
+                !formData.businessDescription || 
+                !formData.latitude || 
+                !formData.longitude || 
+                !formData.businessCategory ||
+                !formData.password ||
+                !formData.confirmPassword ||
+                !passwordMatch ||
+                passwordStrength.score < 2
+              }
+              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white py-3 text-lg font-semibold"
             >
               {isLoading ? (
                 <div className="flex items-center">
@@ -595,7 +842,7 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
           </form>
 
           {/* Search Link */}
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
               Want to find businesses?{' '}
               <Link href="/search" className="text-primary hover:text-primary/80 font-medium transition-colors">
@@ -606,26 +853,26 @@ Example: 'A cozy neighborhood cafe serving artisan coffee, fresh pastries, and l
         </Card>
 
         {/* Benefits Section */}
-        <div className="mt-8 grid md:grid-cols-3 gap-4">
-          <Card className="p-4 bg-card/30 border-border/50 text-center">
-            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-5 h-5 text-primary" />
+        <div className="mt-6 grid md:grid-cols-3 gap-4">
+          <Card className="p-3 bg-card/30 border-border/50 text-center">
+            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <Sparkles className="w-4 h-4 text-primary" />
             </div>
             <h3 className="font-semibold text-sm mb-1">AI Discovery</h3>
             <p className="text-xs text-muted-foreground">Get found by customers through intelligent search</p>
           </Card>
 
-          <Card className="p-4 bg-card/30 border-border/50 text-center">
-            <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <MapPin className="w-5 h-5 text-accent" />
+          <Card className="p-3 bg-card/30 border-border/50 text-center">
+            <div className="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <MapPin className="w-4 h-4 text-accent" />
             </div>
             <h3 className="font-semibold text-sm mb-1">Local Visibility</h3>
             <p className="text-xs text-muted-foreground">Appear in location-based searches automatically</p>
           </Card>
 
-          <Card className="p-4 bg-card/30 border-border/50 text-center">
-            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Building2 className="w-5 h-5 text-primary" />
+          <Card className="p-3 bg-card/30 border-border/50 text-center">
+            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <Building2 className="w-4 h-4 text-primary" />
             </div>
             <h3 className="font-semibold text-sm mb-1">Easy Management</h3>
             <p className="text-xs text-muted-foreground">Simple dashboard to manage your business profile</p>
