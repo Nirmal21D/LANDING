@@ -69,14 +69,9 @@ const businessSchema = new mongoose.Schema({
       facebook: String,
       instagram: String,
       twitter: String,
-      linkedin: String,
-      youtube: String
+      linkedin: String
     },
     default: {}
-  },
-  businessImages: {
-    type: [String],
-    default: []
   },
   ownerId: {
     type: String, // Clerk user ID

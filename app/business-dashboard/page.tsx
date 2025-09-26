@@ -28,7 +28,6 @@ import {
   Share2,
   BarChart3,
   MessageSquare,
-  Camera,
   FileText,
   Search,
   Target,
@@ -43,15 +42,12 @@ import {
   Utensils,
   Zap,
   MessageCircle,
-  Upload,
   Globe,
   Instagram,
   Facebook,
   Twitter,
   Linkedin,
-  Youtube,
-  Plus,
-  X
+  Plus
 } from "lucide-react"
 import Link from "next/link"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
@@ -79,10 +75,8 @@ export default function BusinessDashboard() {
       facebook: '',
       instagram: '',
       twitter: '',
-      linkedin: '',
-      youtube: ''
-    },
-    images: [] as string[]
+      linkedin: ''
+    }
   })
   const [isSubmittingPending, setIsSubmittingPending] = useState(false)
 
@@ -214,26 +208,6 @@ export default function BusinessDashboard() {
         ...prev.socialHandles,
         [platform]: value
       }
-    }))
-  }
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      // In a real app, you'd upload to a service like Cloudinary or AWS S3
-      // For now, we'll just show placeholders
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
-      setPendingFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...newImages]
-      }))
-    }
-  }
-
-  const removeImage = (index: number) => {
-    setPendingFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
     }))
   }
 
@@ -648,55 +622,6 @@ export default function BusinessDashboard() {
                       </div>
                     </div>
 
-                    {/* Images Section */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Camera className="w-5 h-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Business Images</h3>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4">
-                          <label htmlFor="image-upload" className="cursor-pointer">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                              <Upload className="w-4 h-4" />
-                              Upload Images
-                            </div>
-                            <input
-                              id="image-upload"
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                            />
-                          </label>
-                          <p className="text-sm text-muted-foreground">Add photos of your business (max 10)</p>
-                        </div>
-                        
-                        {pendingFormData.images.length > 0 && (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {pendingFormData.images.map((image, index) => (
-                              <div key={index} className="relative">
-                                <img
-                                  src={image}
-                                  alt={`Business image ${index + 1}`}
-                                  className="w-full h-32 object-cover rounded-lg border border-border"
-                                />
-                                <Button
-                                  onClick={() => removeImage(index)}
-                                  variant="destructive"
-                                  size="sm"
-                                  className="absolute top-2 right-2 w-6 h-6 p-0"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Website Section */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -776,20 +701,6 @@ export default function BusinessDashboard() {
                             placeholder="https://linkedin.com/company/yourpage"
                             value={pendingFormData.socialHandles.linkedin}
                             onChange={(e) => handleSocialChange('linkedin', e.target.value)}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="youtube" className="flex items-center gap-2">
-                            <Youtube className="w-4 h-4 text-red-600" />
-                            YouTube
-                          </Label>
-                          <Input
-                            id="youtube"
-                            type="url"
-                            placeholder="https://youtube.com/yourchannel"
-                            value={pendingFormData.socialHandles.youtube}
-                            onChange={(e) => handleSocialChange('youtube', e.target.value)}
                           />
                         </div>
                       </div>
@@ -1020,47 +931,10 @@ export default function BusinessDashboard() {
                                 </Button>
                               </a>
                             )}
-                            {businessInfo.socialHandles?.youtube && (
-                              <a href={businessInfo.socialHandles.youtube} target="_blank" rel="noopener noreferrer">
-                                <Button variant="outline" size="sm" className="gap-1">
-                                  <Youtube className="w-3 h-3" />
-                                  YouTube
-                                </Button>
-                              </a>
-                            )}
                           </div>
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Business Images */}
-              {businessInfo.businessImages && businessInfo.businessImages.length > 0 && (
-                <Card className="border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Camera className="w-5 h-5 text-primary" />
-                      Business Images
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2">
-                      {businessInfo.businessImages.slice(0, 4).map((image: string, index: number) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Business image ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-border"
-                        />
-                      ))}
-                    </div>
-                    {businessInfo.businessImages.length > 4 && (
-                      <p className="text-sm text-muted-foreground mt-2 text-center">
-                        +{businessInfo.businessImages.length - 4} more images
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               )}

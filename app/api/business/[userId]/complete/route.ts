@@ -26,22 +26,67 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { businessHours, website, socialHandles, images } = body
+    const { businessHours, website, socialHandles } = body
     
     await connectDB()
 
+    // Validate businessHours structure if provided
+    if (businessHours) {
+      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      const isValidBusinessHours = validDays.every(day => {
+        if (!businessHours[day]) return false
+        const dayHours = businessHours[day]
+        return typeof dayHours.closed === 'boolean' && 
+               (dayHours.closed || (typeof dayHours.open === 'string' && typeof dayHours.close === 'string'))
+      })
+      
+      if (!isValidBusinessHours) {
+        return NextResponse.json(
+          { error: 'Invalid business hours format' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Validate social handles if provided
+    if (socialHandles) {
+      const validPlatforms = ['facebook', 'instagram', 'twitter', 'linkedin']
+      const invalidPlatforms = Object.keys(socialHandles).filter(platform => 
+        !validPlatforms.includes(platform)
+      )
+      
+      if (invalidPlatforms.length > 0) {
+        return NextResponse.json(
+          { error: `Invalid social platforms: ${invalidPlatforms.join(', ')}` },
+          { status: 400 }
+        )
+      }
+    }
+
     // Update user's business with additional completion data
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+
+    if (businessHours) {
+      updateData.businessHours = businessHours
+    }
+
+    if (website) {
+      updateData.website = website
+    }
+
+    if (socialHandles) {
+      updateData.socialHandles = socialHandles
+    }
+
+    // Auto-approve when additional details are provided
+    updateData.status = 'approved'
+    updateData.verificationDate = new Date()
+
     const updatedBusiness = await Business.findOneAndUpdate(
       { ownerId: userId },
-      { 
-        businessHours,
-        website: website || null,
-        socialHandles,
-        businessImages: images || [],
-        status: 'approved', // Auto-approve when additional details are provided
-        verificationDate: new Date(),
-        updatedAt: new Date()
-      },
+      updateData,
       { new: true }
     )
     
