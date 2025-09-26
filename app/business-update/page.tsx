@@ -261,18 +261,20 @@ export default function BusinessUpdatePage() {
   const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
   // Show loading state
-  if (!isLoaded || loading) {
+  if (!mounted || !isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading business information...</p>
-          <div className="mt-4 text-xs text-muted-foreground space-y-1">
-            <p>Clerk loaded: {isLoaded ? '✓' : '✗'}</p>
-            <p>User signed in: {isSignedIn ? '✓' : '✗'}</p>
-            <p>User ID: {user?.id || 'None'}</p>
-            <p>Loading data: {loading ? '✓' : '✗'}</p>
-          </div>
+          {mounted && (
+            <div className="mt-4 text-xs text-muted-foreground space-y-1">
+              <p>Clerk loaded: {isLoaded ? '✓' : '✗'}</p>
+              <p>User signed in: {isSignedIn ? '✓' : '✗'}</p>
+              <p>User ID: {user?.id || 'None'}</p>
+              <p>Loading data: {loading ? '✓' : '✗'}</p>
+            </div>
+          )}
         </div>
       </div>
     )

@@ -59,6 +59,7 @@ export default function BusinessDashboard() {
   const router = useRouter()
   const [businessData, setBusinessData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [showPendingForm, setShowPendingForm] = useState(false)
   const [isBusinessCompleted, setIsBusinessCompleted] = useState(false)
   const [pendingFormData, setPendingFormData] = useState({
@@ -88,12 +89,17 @@ export default function BusinessDashboard() {
     }
   }, [isLoaded, isSignedIn, router])
 
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Fetch business data when user is loaded
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
+    if (isLoaded && isSignedIn && user && mounted) {
       fetchBusinessData()
     }
-  }, [isLoaded, isSignedIn, user])
+  }, [isLoaded, isSignedIn, user, mounted])
 
   // Pre-populate form data with existing business data
   useEffect(() => {
@@ -308,7 +314,7 @@ export default function BusinessDashboard() {
   }
 
   // Show loading state
-  if (!isLoaded || loading) {
+  if (!mounted || !isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
