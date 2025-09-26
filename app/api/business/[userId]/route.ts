@@ -61,7 +61,11 @@ export async function PUT(
     const { userId } = await auth()
     const { userId: paramUserId } = await params
     
+    console.log('Auth userId:', userId)
+    console.log('Param userId:', paramUserId)
+    
     if (!userId) {
+      console.error('No authenticated user')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -70,6 +74,7 @@ export async function PUT(
 
     // Ensure user can only update their own data
     if (userId !== paramUserId) {
+      console.error('User ID mismatch:', userId, 'vs', paramUserId)
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -77,8 +82,22 @@ export async function PUT(
     }
 
     const body = await request.json()
+    console.log('Update request body:', body)
     
     await connectDB()
+    console.log('Connected to DB')
+
+    // Validate required fields
+    const requiredFields = ['businessOwnerName', 'businessName', 'businessCategory', 'email', 'address']
+    const missingFields = requiredFields.filter(field => !body[field])
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields)
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      )
+    }
 
     // Update user's business
     const updatedBusiness = await Business.findOneAndUpdate(
@@ -90,15 +109,20 @@ export async function PUT(
       { new: true }
     )
     
+    console.log('Updated business:', updatedBusiness ? 'Success' : 'Not found')
+    
     if (!updatedBusiness) {
+      console.error('Business not found for user:', userId)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
 
+    console.log('Business update completed successfully')
     return NextResponse.json({
       success: true,
+      message: 'Business updated successfully',
       business: updatedBusiness
     })
 

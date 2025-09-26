@@ -11,7 +11,11 @@ export async function PUT(
     const { userId } = await auth()
     const { userId: paramUserId } = await params
     
+    console.log('Auth userId:', userId)
+    console.log('Param userId:', paramUserId)
+    
     if (!userId) {
+      console.error('No authenticated user')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -20,6 +24,7 @@ export async function PUT(
 
     // Ensure user can only update their own data
     if (userId !== paramUserId) {
+      console.error('User ID mismatch:', userId, 'vs', paramUserId)
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -27,9 +32,11 @@ export async function PUT(
     }
 
     const body = await request.json()
+    console.log('Request body:', body)
     const { businessHours, website, socialHandles } = body
     
     await connectDB()
+    console.log('Connected to DB')
 
     // Validate businessHours structure if provided
     if (businessHours) {
@@ -42,6 +49,7 @@ export async function PUT(
       })
       
       if (!isValidBusinessHours) {
+        console.error('Invalid business hours format:', businessHours)
         return NextResponse.json(
           { error: 'Invalid business hours format' },
           { status: 400 }
@@ -57,6 +65,7 @@ export async function PUT(
       )
       
       if (invalidPlatforms.length > 0) {
+        console.error('Invalid social platforms:', invalidPlatforms)
         return NextResponse.json(
           { error: `Invalid social platforms: ${invalidPlatforms.join(', ')}` },
           { status: 400 }
@@ -84,6 +93,8 @@ export async function PUT(
     // Auto-approve when additional details are provided
     updateData.status = 'approved'
     updateData.verificationDate = new Date()
+    
+    console.log('Update data:', updateData)
 
     const updatedBusiness = await Business.findOneAndUpdate(
       { ownerId: userId },
@@ -91,13 +102,17 @@ export async function PUT(
       { new: true }
     )
     
+    console.log('Updated business:', updatedBusiness ? 'Found' : 'Not found')
+    
     if (!updatedBusiness) {
+      console.error('Business not found for user:', userId)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
 
+    console.log('Business updated successfully')
     return NextResponse.json({
       success: true,
       message: 'Business profile completed successfully',

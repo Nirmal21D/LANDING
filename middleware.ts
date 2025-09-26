@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server'
 // Define protected routes that require authentication
 const isProtectedRoute = createRouteMatcher([
   '/business-dashboard(.*)',
+  '/business-update(.*)',
   '/api/business(.*)',
-  '/api/user(.*)'
+  '/api/user(.*)',
+  '/api/test-business'
 ])
 
 // Define public routes that should be accessible without authentication

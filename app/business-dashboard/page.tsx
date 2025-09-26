@@ -60,6 +60,7 @@ export default function BusinessDashboard() {
   const [businessData, setBusinessData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showPendingForm, setShowPendingForm] = useState(false)
+  const [isBusinessCompleted, setIsBusinessCompleted] = useState(false)
   const [pendingFormData, setPendingFormData] = useState({
     businessHours: {
       monday: { open: '', close: '', closed: false },
@@ -94,6 +95,23 @@ export default function BusinessDashboard() {
     }
   }, [isLoaded, isSignedIn, user])
 
+  // Pre-populate form data with existing business data
+  useEffect(() => {
+    if (businessData && businessData.businessHours) {
+      setPendingFormData(prev => ({
+        ...prev,
+        businessHours: businessData.businessHours || prev.businessHours,
+        website: businessData.website || '',
+        socialHandles: businessData.socialHandles || {
+          facebook: '',
+          instagram: '',
+          twitter: '',
+          linkedin: ''
+        }
+      }))
+    }
+  }, [businessData])
+
   const fetchBusinessData = async () => {
     try {
       // Fetch business data from your API
@@ -103,6 +121,26 @@ export default function BusinessDashboard() {
         if (data.success && data.business) {
           // Map business data to expected format
           const business = data.business
+          
+          // Check if business has completed ALL additional information
+          const hasBusinessHours = business.businessHours && Object.values(business.businessHours).some((day: any) => 
+            day.closed || (day.open && day.close)
+          )
+          const hasWebsite = business.website && business.website.trim() !== ''
+          const hasSocialHandles = business.socialHandles && Object.values(business.socialHandles).some((handle: any) => 
+            handle && typeof handle === 'string' && handle.trim() !== ''
+          )
+          
+          // Require business hours AND (website OR social media) for pending businesses
+          const hasAllRequiredInfo = hasBusinessHours && (hasWebsite || hasSocialHandles)
+          
+          setIsBusinessCompleted(hasAllRequiredInfo || business.status === 'approved')
+          
+          // If business is pending and hasn't completed ALL additional info, force show pending form
+          if (business.status === 'pending' && !hasAllRequiredInfo) {
+            setShowPendingForm(true)
+          }
+          
           setBusinessData({
             name: business.businessName,
             ownerName: business.businessOwnerName,
@@ -214,6 +252,28 @@ export default function BusinessDashboard() {
   const submitPendingData = async () => {
     setIsSubmittingPending(true)
     try {
+      // Client-side validation
+      const hasBusinessHours = Object.values(pendingFormData.businessHours).some((day: any) => 
+        day.closed || (day.open && day.close)
+      )
+      const hasWebsite = pendingFormData.website && pendingFormData.website.trim() !== ''
+      const hasSocialHandles = Object.values(pendingFormData.socialHandles).some((handle: any) => 
+        handle && handle.trim() !== ''
+      )
+      
+      if (!hasBusinessHours) {
+        alert('Please set your business hours for at least one day')
+        return
+      }
+      
+      if (!hasWebsite && !hasSocialHandles) {
+        alert('Please provide either a website URL or at least one social media profile')
+        return
+      }
+      
+      console.log('Submitting data:', pendingFormData)
+      console.log('Validation passed:', { hasBusinessHours, hasWebsite, hasSocialHandles })
+      
       const response = await fetch(`/api/business/${user?.id}/complete`, {
         method: 'PUT',
         headers: {
@@ -222,15 +282,26 @@ export default function BusinessDashboard() {
         body: JSON.stringify(pendingFormData),
       })
 
+      console.log('Response status:', response.status)
+      const responseData = await response.json()
+      console.log('Response data:', responseData)
+
       if (response.ok) {
+        console.log('Business updated successfully')
         // Refresh business data
         await fetchBusinessData()
         setShowPendingForm(false)
+        setIsBusinessCompleted(true)
+        
+        // Show success message
+        alert('Business information updated successfully!')
       } else {
-        throw new Error('Failed to update business information')
+        console.error('Update failed:', responseData)
+        alert(`Failed to update business information: ${responseData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error updating business:', error)
+      alert('An error occurred while updating business information')
     } finally {
       setIsSubmittingPending(false)
     }
@@ -302,6 +373,252 @@ export default function BusinessDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  // Show business completion form if pending and not completed
+  if (!loading && businessData && businessData.status === 'pending' && !isBusinessCompleted) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+          <div className="w-full flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Building2 className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold">Complete Your Business Profile</h1>
+                  <p className="text-sm text-muted-foreground">{businessData.name}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <AnimatedThemeToggler />
+              <UserButton 
+                appearance={{
+                  elements: {
+                    avatarBox: 'w-8 h-8',
+                    userButtonPopoverCard: 'border-border bg-card',
+                    userButtonPopoverActions: 'text-foreground'
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="w-full px-6 py-8">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* Mandatory Business Completion Form */}
+            <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full">
+                    <Clock className="w-8 h-8 text-orange-600" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl text-orange-800 dark:text-orange-200">
+                  Complete Your Business Profile
+                </CardTitle>
+                <CardDescription className="text-orange-700 dark:text-orange-300 text-base mt-2">
+                  Please provide your business hours and at least one way for customers to find you online (website or social media) to access the full dashboard.
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-8">
+                  
+                  {/* Business Hours Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Business Hours *</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Please set your business operating hours. This helps customers know when you're open.
+                    </p>
+                    <div className="space-y-3">
+                      {Object.entries(pendingFormData.businessHours).map(([day, hours]) => (
+                        <div key={day} className="flex items-center gap-4 p-3 bg-background rounded-lg border border-border/50">
+                          <div className="w-24">
+                            <p className="font-medium capitalize text-sm">{day}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`${day}-closed`}
+                              checked={hours.closed}
+                              onChange={() => toggleDayClosed(day)}
+                              className="rounded"
+                            />
+                            <Label htmlFor={`${day}-closed`} className="text-sm">Closed</Label>
+                          </div>
+                          {!hours.closed && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="time"
+                                value={hours.open}
+                                onChange={(e) => handleHoursChange(day, 'open', e.target.value)}
+                                className="w-32"
+                              />
+                              <span className="text-muted-foreground">to</span>
+                              <Input
+                                type="time"
+                                value={hours.close}
+                                onChange={(e) => handleHoursChange(day, 'close', e.target.value)}
+                                className="w-32"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Website Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Website *</h3>
+                      <span className="text-sm text-muted-foreground">(Website OR Social Media required)</span>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website URL</Label>
+                      <Input
+                        id="website"
+                        type="url"
+                        placeholder="https://www.yourwebsite.com"
+                        value={pendingFormData.website}
+                        onChange={(e) => setPendingFormData(prev => ({ ...prev, website: e.target.value }))}
+                        className="max-w-md"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Social Media Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Social Media *</h3>
+                      <span className="text-sm text-muted-foreground">(Website OR Social Media required)</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Add at least one social media profile to help customers find and connect with your business.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="facebook" className="flex items-center gap-2">
+                          <Facebook className="w-4 h-4 text-blue-600" />
+                          Facebook
+                        </Label>
+                        <Input
+                          id="facebook"
+                          type="url"
+                          placeholder="https://facebook.com/yourpage"
+                          value={pendingFormData.socialHandles.facebook}
+                          onChange={(e) => handleSocialChange('facebook', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="instagram" className="flex items-center gap-2">
+                          <Instagram className="w-4 h-4 text-pink-600" />
+                          Instagram
+                        </Label>
+                        <Input
+                          id="instagram"
+                          type="url"
+                          placeholder="https://instagram.com/yourpage"
+                          value={pendingFormData.socialHandles.instagram}
+                          onChange={(e) => handleSocialChange('instagram', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="twitter" className="flex items-center gap-2">
+                          <Twitter className="w-4 h-4 text-blue-400" />
+                          Twitter
+                        </Label>
+                        <Input
+                          id="twitter"
+                          type="url"
+                          placeholder="https://twitter.com/yourpage"
+                          value={pendingFormData.socialHandles.twitter}
+                          onChange={(e) => handleSocialChange('twitter', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="linkedin" className="flex items-center gap-2">
+                          <Linkedin className="w-4 h-4 text-blue-700" />
+                          LinkedIn
+                        </Label>
+                        <Input
+                          id="linkedin"
+                          type="url"
+                          placeholder="https://linkedin.com/company/yourpage"
+                          value={pendingFormData.socialHandles.linkedin}
+                          onChange={(e) => handleSocialChange('linkedin', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex flex-col gap-4 pt-4 border-t border-border">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <Info className="w-4 h-4 inline mr-2" />
+                        At minimum, please set your business hours to continue. Website and social media links are optional but recommended.
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/test-business')
+                            const data = await response.json()
+                            console.log('Test API response:', data)
+                            alert(`Test API: ${JSON.stringify(data, null, 2)}`)
+                          } catch (error) {
+                            console.error('Test API error:', error)
+                            alert('Test API failed')
+                          }
+                        }}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        Test API
+                      </Button>
+                      <Button
+                        onClick={submitPendingData}
+                        disabled={isSubmittingPending}
+                        className="gap-2 px-8"
+                      >
+                        {isSubmittingPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Building2 className="w-4 h-4" />
+                            Complete Profile & Access Dashboard
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -548,28 +865,28 @@ export default function BusinessDashboard() {
       <div className="w-full px-6 py-8">
         <div className="space-y-8">
           
-          {/* Pending Business Completion Form */}
-          {businessInfo.status === 'pending' && (
-            <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+          {/* Optional Additional Info Form for Approved Businesses */}
+          {businessInfo.status === 'pending' && isBusinessCompleted && (
+            <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                      <Clock className="w-5 h-5 text-orange-600" />
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                      <Edit className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg text-orange-800 dark:text-orange-200">Complete Your Business Profile</CardTitle>
-                      <CardDescription className="text-orange-700 dark:text-orange-300">
-                        Add additional information to get your business approved faster
+                      <CardTitle className="text-lg text-blue-800 dark:text-blue-200">Update Business Information</CardTitle>
+                      <CardDescription className="text-blue-700 dark:text-blue-300">
+                        Make changes to your business hours, website, or social media links
                       </CardDescription>
                     </div>
                   </div>
                   <Button
                     onClick={() => setShowPendingForm(!showPendingForm)}
                     variant="outline"
-                    className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300"
                   >
-                    {showPendingForm ? 'Hide Form' : 'Complete Profile'}
+                    {showPendingForm ? 'Hide Form' : 'Update Info'}
                   </Button>
                 </div>
               </CardHeader>
@@ -707,7 +1024,24 @@ export default function BusinessDashboard() {
                     </div>
 
                     {/* Submit Button */}
-                    <div className="flex justify-end pt-4 border-t border-border">
+                    <div className="flex justify-end pt-4 border-t border-border gap-2">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/test-business')
+                            const data = await response.json()
+                            console.log('Test API response:', data)
+                            alert(`Test API: ${JSON.stringify(data, null, 2)}`)
+                          } catch (error) {
+                            console.error('Test API error:', error)
+                            alert('Test API failed')
+                          }
+                        }}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        Test API
+                      </Button>
                       <Button
                         onClick={submitPendingData}
                         disabled={isSubmittingPending}
