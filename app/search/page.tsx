@@ -126,7 +126,7 @@ export default function SearchPage() {
     setIsLoadingRecentSearches(true)
     try {
       console.log('🔍 Fetching recent search logs...')
-      const response = await fetch('http://localhost:8005/search-logs/recent', {
+      const response = await fetch('http://139.59.29.80:8005/search-logs/recent', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
