@@ -9,6 +9,7 @@ export async function PUT(
 ) {
   try {
     const { userId } = await auth()
+    const { userId: paramUserId } = await params
     
     if (!userId) {
       return NextResponse.json(
@@ -18,7 +19,7 @@ export async function PUT(
     }
 
     // Ensure user can only update their own data
-    if (userId !== params.userId) {
+    if (userId !== paramUserId) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
