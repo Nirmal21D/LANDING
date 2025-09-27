@@ -79,6 +79,14 @@ export default function BusinessProfilePage() {
         }
         return;
       }
+      // Defensive: check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Unexpected server response:", text);
+        setError("Unexpected server response. Please try again later.");
+        return;
+      }
       const data = await response.json();
       setBusiness(data);
     } catch (err) {
@@ -160,14 +168,14 @@ export default function BusinessProfilePage() {
   const currentHours = getCurrentDayHours();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#101014]">
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-[#18181c] rounded-lg shadow-sm p-6 mb-6 border border-border/50">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{business.businessName}</h1>
-              <p className="text-lg text-gray-600 mb-4">{business.businessDescription}</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{business.businessName}</h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">{business.businessDescription}</p>
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary" className="text-sm">{business.businessCategory}</Badge>
                 {business.businessTags.map((tag, index) => (
@@ -175,47 +183,47 @@ export default function BusinessProfilePage() {
                 ))}
               </div>
             </div>
-            <Button onClick={handleShare} variant="outline" size="sm">
+            <Button onClick={handleShare} variant="outline" size="sm" className="dark:bg-[#23232a] dark:text-white dark:border-gray-700">
               <Share2 className="w-4 h-4 mr-2" />Share
             </Button>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Contact Information */}
-          <Card>
+          <Card className="bg-white dark:bg-[#18181c] border border-border/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                 <Phone className="w-5 h-5" />Contact Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-gray-500" />
-                <span className="text-sm">{business.address}</span>
+                <MapPin className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                <span className="text-sm text-gray-800 dark:text-gray-200">{business.address}</span>
               </div>
               {business.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-gray-500" />
-                  <a href={`tel:${business.phone}`} className="text-sm text-blue-600 hover:underline">{business.phone}</a>
+                  <Phone className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                  <a href={`tel:${business.phone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{business.phone}</a>
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-gray-500" />
-                <a href={`mailto:${business.email}`} className="text-sm text-blue-600 hover:underline">{business.email}</a>
+                <Mail className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                <a href={`mailto:${business.email}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{business.email}</a>
               </div>
               {business.website && (
                 <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-gray-500" />
-                  <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Visit Website</a>
+                  <Globe className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                  <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Visit Website</a>
                 </div>
               )}
             </CardContent>
           </Card>
           {/* Business Hours */}
           {business.businessHours && (
-            <Card>
+            <Card className="bg-white dark:bg-[#18181c] border border-border/50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                   <Clock className="w-5 h-5" />Business Hours
                   {currentHours && !currentHours.closed && (
                     <Badge variant="default" className="ml-2 text-xs">Open Now</Badge>
@@ -226,7 +234,7 @@ export default function BusinessProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm text-gray-800 dark:text-gray-200">
                   {formatBusinessHours(business.businessHours).map((schedule, index) => (
                     <div key={index} className="flex justify-between">
                       <span>{schedule}</span>
@@ -238,37 +246,37 @@ export default function BusinessProfilePage() {
           )}
           {/* Social Media Links */}
           {(business.socialHandles?.facebook || business.socialHandles?.instagram || business.socialHandles?.twitter || business.socialHandles?.linkedin) && (
-            <Card>
+            <Card className="bg-white dark:bg-[#18181c] border border-border/50">
               <CardHeader>
-                <CardTitle>Social Media</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white">Social Media</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
                   {business.socialHandles?.facebook && (
-                    <a href={business.socialHandles.facebook} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800"><Facebook className="w-6 h-6" /></a>
+                    <a href={business.socialHandles.facebook} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"><Facebook className="w-6 h-6" /></a>
                   )}
                   {business.socialHandles?.instagram && (
-                    <a href={business.socialHandles.instagram} target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800"><Instagram className="w-6 h-6" /></a>
+                    <a href={business.socialHandles.instagram} target="_blank" rel="noopener noreferrer" className="text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300"><Instagram className="w-6 h-6" /></a>
                   )}
                   {business.socialHandles?.twitter && (
-                    <a href={business.socialHandles.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-600"><Twitter className="w-6 h-6" /></a>
+                    <a href={business.socialHandles.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-400 dark:text-blue-300 hover:text-blue-600 dark:hover:text-blue-200"><Twitter className="w-6 h-6" /></a>
                   )}
                   {business.socialHandles?.linkedin && (
-                    <a href={business.socialHandles.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-900"><Linkedin className="w-6 h-6" /></a>
+                    <a href={business.socialHandles.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"><Linkedin className="w-6 h-6" /></a>
                   )}
                 </div>
               </CardContent>
             </Card>
           )}
           {/* Map Section */}
-          <Card>
+          <Card className="bg-white dark:bg-[#18181c] border border-border/50">
             <CardHeader>
-              <CardTitle>Location</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Location</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="w-full flex flex-col items-center">
                 <div className="w-full max-w-2xl">
-                  <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                  <div className="bg-card dark:bg-[#23232a] border border-border rounded-xl shadow-sm p-4">
                     <BusinessMap 
                       businessInfo={{
                         name: business.businessName,
@@ -285,7 +293,7 @@ export default function BusinessProfilePage() {
                         href={`https://www.google.com/maps?q=${business.location.latitude},${business.location.longitude}`}
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="text-primary hover:underline text-sm font-medium transition-colors"
+                        className="text-primary dark:text-blue-400 hover:underline text-sm font-medium transition-colors"
                       >
                         View on Google Maps
                       </a>
@@ -293,17 +301,14 @@ export default function BusinessProfilePage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-4">
-                <a href={`https://www.google.com/maps?q=${business.location.latitude},${business.location.longitude}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">View on Google Maps</a>
-              </div>
             </CardContent>
           </Card>
           {/* Business Info */}
-          <Card>
+          <Card className="bg-white dark:bg-[#18181c] border border-border/50">
             <CardHeader>
-              <CardTitle>About</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">About</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 text-gray-800 dark:text-gray-200">
               <div><span className="font-semibold text-sm">Owner:</span><span className="ml-2 text-sm">{business.businessOwnerName}</span></div>
               <div><span className="font-semibold text-sm">Category:</span><span className="ml-2 text-sm">{business.businessCategory}</span></div>
               {business.businessType && (<div><span className="font-semibold text-sm">Type:</span><span className="ml-2 text-sm">{business.businessType}</span></div>)}
@@ -311,13 +316,13 @@ export default function BusinessProfilePage() {
             </CardContent>
           </Card>
           {/* Reviews Section - Placeholder */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 bg-white dark:bg-[#18181c] border border-border/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Star className="w-5 h-5" />Customer Reviews</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white"><Star className="w-5 h-5" />Customer Reviews</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Star className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Star className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                 <h3 className="text-lg font-semibold mb-2">No reviews yet</h3>
                 <p className="text-sm">Be the first to leave a review for {business.businessName}</p>
                 <Button className="mt-4" variant="outline">Write a Review</Button>
@@ -326,7 +331,7 @@ export default function BusinessProfilePage() {
           </Card>
         </div>
         {/* Footer */}
-        <div className="text-center mt-8 text-gray-500 text-sm">
+        <div className="text-center mt-8 text-gray-500 dark:text-gray-400 text-sm">
           <p>Business profile • Last updated {new Date(business.updatedAt).toLocaleDateString()}</p>
         </div>
       </div>

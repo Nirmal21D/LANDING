@@ -9,9 +9,9 @@ export async function GET(
 ) {
   try {
     await connectDB();
-    
-    const { businessId } = params;
-    
+
+    const { businessId } = await params;
+    console.log("Fetching business with ID:", businessId);
     // Validate if businessId is a valid MongoDB ObjectId
     if (!ObjectId.isValid(businessId)) {
       return NextResponse.json(
@@ -22,8 +22,8 @@ export async function GET(
 
     // Find the business by ID and only include approved and active businesses
     const business = await Business.findOne({
-      _id: businessId,
-      status: 'approved',
+      _id: new ObjectId(businessId),
+      status: { $in: ['approved', 'pending'] },
       isActive: true
     }).select('-__v -ownerId'); // Exclude sensitive fields
 

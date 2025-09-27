@@ -13,7 +13,7 @@ interface Props {
 export async function generateMetadata({ params }: { params: { businessId: string } }): Promise<Metadata> {
   try {
     await connectDB();
-    const { businessId } = params;
+    const { businessId } = await params;
     // Validate if businessId is a valid MongoDB ObjectId
     if (!ObjectId.isValid(businessId)) {
       return {
