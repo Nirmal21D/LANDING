@@ -671,7 +671,7 @@ export default function BusinessDashboard() {
   }
 
   // Show business completion form if pending and not completed
-  if (!loading && businessData && businessData.status === 'pending' && !isBusinessCompleted) {
+  if (!loading && businessData &&  !isBusinessCompleted) {
     return (
       <div className="min-h-screen bg-background">
         {/* Header */}
@@ -1410,7 +1410,7 @@ export default function BusinessDashboard() {
         <div className="space-y-8">
           
           {/* Optional Additional Info Form for Approved Businesses */}
-          {businessInfo.status === 'pending' && isBusinessCompleted && (
+          { isBusinessCompleted && (
             <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1768,7 +1768,27 @@ export default function BusinessDashboard() {
                           Edit Business
                         </Button>
                       </Link>
-                      <Button variant="outline" className="gap-2">
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={async () => {
+                          const url = `${window.location.origin}/${businessData?._id}`;
+                          try {
+                            if (navigator.share) {
+                              await navigator.share({
+                                title: businessInfo.name,
+                                text: `Check out my business profile on LANDING!`,
+                                url,
+                              });
+                            } else {
+                              await navigator.clipboard.writeText(url);
+                              alert('Profile link copied to clipboard!');
+                            }
+                          } catch (err) {
+                            alert('Failed to share link.');
+                          }
+                        }}
+                      >
                         <Share2 className="w-4 h-4" />
                         Share
                       </Button>

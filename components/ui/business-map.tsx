@@ -174,108 +174,26 @@ export default function BusinessMap({ businessInfo, competitors, className = "" 
   return (
     <div className={`relative bg-card border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Map Header */}
-      <div className="bg-card/80 backdrop-blur-sm border-b border-border p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-primary" />
-          <div>
-            <h3 className="text-lg font-semibold">Business Location & Competitors</h3>
-            <p className="text-sm text-muted-foreground">Your business and nearby competition</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-xs text-muted-foreground">Your Business</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-            <span className="text-xs text-muted-foreground">Competitors</span>
-          </div>
-        </div>
+      <div className="bg-card/80 backdrop-blur-sm border-b border-border p-4 flex items-center gap-2">
+        <MapPin className="w-5 h-5 text-primary" />
+        <h3 className="text-lg font-semibold">Business Location</h3>
       </div>
-      
-      {/* Map Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-        <div className="lg:col-span-2 relative">
-          <div ref={mapRef} className="w-full h-[400px]" />
-          
-          {/* Loading overlay */}
-          {!isMapLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                Loading Google Maps...
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Competitors List */}
-        <div className="border-l border-border bg-muted/20 overflow-y-auto max-h-[400px]">
-          <div className="p-4">
-            <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Nearby Businesses ({competitors.length})
-            </h4>
-            <div className="space-y-3">
-              {competitors.map((competitor) => (
-                <div 
-                  key={competitor.id} 
-                  className={`p-3 bg-background rounded-lg border border-border/50 cursor-pointer transition-all hover:shadow-sm ${
-                    selectedBusiness?.id === competitor.id ? 'ring-2 ring-primary/20 bg-primary/5' : ''
-                  }`}
-                  onClick={() => {
-                    if (map) {
-                      map.setCenter({ lat: competitor.latitude, lng: competitor.longitude })
-                      map.setZoom(17)
-                    }
-                    setSelectedBusiness(competitor)
-                  }}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h5 className="font-medium text-sm">{competitor.name}</h5>
-                    <Badge 
-                      variant={competitor.status === 'competitor' ? 'secondary' : 'outline'}
-                      className="text-xs"
-                    >
-                      {competitor.status === 'competitor' ? 'Competitor' : 'Related'}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{competitor.rating}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Navigation className="w-3 h-3" />
-                        <span>{competitor.distance}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{competitor.category}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{competitor.hours}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Map Only */}
+      <div className="relative">
+        <div ref={mapRef} className="w-full h-[400px]" />
+        {/* Loading overlay */}
+        {!isMapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              Loading Google Maps...
             </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Map Footer */}
-      <div className="bg-card/80 backdrop-blur-sm border-t border-border p-3 flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span>🔴 Red marker: Your business location</span>
-          <span>🟡 Yellow markers: Direct competitors</span>
-          <span>⚫ Gray markers: Related businesses</span>
-        </div>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Navigation className="w-4 h-4" />
-          Get Directions
-        </Button>
+      {/* Map Footer (Legend) */}
+      <div className="bg-card/80 backdrop-blur-sm border-t border-border p-3 flex items-center gap-4 text-xs text-muted-foreground justify-center">
+        <span>🔴 Red marker: Your business location</span>
       </div>
     </div>
   )
